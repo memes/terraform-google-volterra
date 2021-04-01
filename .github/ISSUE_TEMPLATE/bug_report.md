@@ -5,6 +5,7 @@ title: ''
 labels: 'bug'
 assignees: 'memes'
 ---
+<!-- spell-checker: ignore volterra -->
 Hello and thank you for using this repo. Please complete this form and we'll try
 to address the issue.
 
@@ -15,13 +16,15 @@ provide as much detail as possible.
 
 ## Modules/things used
 
-* [ ] Foo
-* [ ] Bar
-* [ ] Baz
+* [ ] Volterra GCP VPC module
+* [ ] Volterra GCP VPC Custom role module
 
-## Environment
 
-* [ ] Foo
+## Target Environment
+
+* [x] Not a Shared VPC project
+* [ ] Shared VPC Host project
+* [ ] Shared VPC Service project
 
 Any other details we need to know?
 
