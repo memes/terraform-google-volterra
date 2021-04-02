@@ -1,5 +1,5 @@
 terraform {
-  required_version = "> 0.12"
+  required_version = ">= 0.13.0"
   required_providers {
     google = {
       version = ">= 3.58"
@@ -19,7 +19,7 @@ resource "random_id" "role_id" {
 # Create a custom role for Volterra VPC
 module "role" {
   source       = "terraform-google-modules/iam/google//modules/custom_role_iam"
-  version      = "6.4.1"
+  version      = "7.0.0"
   target_level = var.target_type
   target_id    = var.target_id
   role_id      = coalesce(var.id, format("volterra_vpc_%s", random_id.role_id.hex))

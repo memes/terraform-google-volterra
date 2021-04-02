@@ -9,6 +9,7 @@ will be used to manage Volterra GCP VPC Sites.
 ```hcl
 module "volterra_role" {
   source    = "memes/volterra/google//modules/role"
+  version   = "0.2.0"
   target_id = "my-project-id"
 }
 ```
@@ -19,7 +20,8 @@ module "volterra_role" {
 <!-- spell-checker: disable -->
 ```hcl
 module "volterra_role" {
-  source    = "memes/volterra/google//modules/role"
+  source      = "memes/volterra/google//modules/role"
+  version     = "0.2.0"
   target_type = "org"
   target_id   = "my-org-id"
 }
@@ -32,7 +34,8 @@ module "volterra_role" {
 ```hcl
 module "volterra_role" {
   source    = "memes/volterra/google//modules/role"
-  id = "my_volterra_role"
+  version   = "0.2.0"
+  id        = "my_volterra_role"
   target_id = "my-project-id"
   members   = ["serviceAccount:volterra@my-project-id.iam.gserviceaccount.com"]
 }
@@ -46,7 +49,7 @@ module "volterra_role" {
 
 | Name | Version |
 |------|---------|
-| terraform | > 0.12 |
+| terraform | >= 0.13.0 |
 | google | >= 3.58 |
 
 ## Providers
@@ -59,7 +62,7 @@ module "volterra_role" {
 
 | Name | Source | Version |
 |------|--------|---------|
-| role | terraform-google-modules/iam/google//modules/custom_role_iam | 6.4.1 |
+| role | terraform-google-modules/iam/google//modules/custom_role_iam | 7.0.0 |
 
 ## Resources
 
