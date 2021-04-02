@@ -13,7 +13,7 @@ variable "gcp_role_name" {
   type    = string
   default = ""
   validation {
-    condition     = var.gcp_role_name == "" || can(regex("^[a-z][a-z0-9-.]{1,63}[a-z0-9]$", var.gcp_role_name))
+    condition     = var.gcp_role_name == "" || can(regex("^[a-z0-9_.]{3,64}$", var.gcp_role_name))
     error_message = "The gcp_role_name variable must be empty or between 3 and 64 alphanumeric characters, underscores (_), and periods (.)."
   }
   description = <<EOD
