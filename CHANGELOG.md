@@ -8,6 +8,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2021-07-21
+
+### Added
+
+- `region-locations` module to provide a map of known GCP regions to approximate
+  latitude and longitude.
+
+### Changed
+
+### Removed
+
 ## [0.2.1] - 2021-04-01
 
 ### Added
@@ -39,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+[0.3.0]: https://github.com/memes/terraform-google-volterra/compare/0.2.1...0.3.0
 [0.2.1]: https://github.com/memes/terraform-google-volterra/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/memes/terraform-google-volterra/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/memes/terraform-google-volterra/releases/tag/0.1.0
