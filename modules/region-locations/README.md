@@ -10,7 +10,7 @@ efficiently.
 ```hcl
 module "locations" {
   source    = "memes/volterra/google//modules/region-locations"
-  version   = "0.3.0"
+  version   = "0.3.1"
 }
 
 resource "volterra_gcp_vpc_site" "site" {
@@ -32,7 +32,7 @@ resource "volterra_gcp_vpc_site" "site" {
 ```hcl
 module "locations" {
   source    = "memes/volterra/google//modules/region-locations"
-  version   = "0.3.0"
+  version   = "0.3.1"
 }
 
 resource "volterra_gcp_vpc_site" "site" {

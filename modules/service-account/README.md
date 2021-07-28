@@ -15,7 +15,7 @@ cloud credentials name.
 ```hcl
 module "volterra_sa" {
   source                   = "memes/volterra/google//modules/service-account"
-  version                  = "0.2.0"
+  version                  = "0.3.1"
   gcp_project_id           = "my-gcp-project"
 }
 ```
@@ -27,7 +27,7 @@ module "volterra_sa" {
 ```hcl
 module "volterra_sa" {
   source                         = "memes/volterra/google//modules/service-account"
-  version                        = "0.2.0"
+  version                        = "0.3.1"
   gcp_project_id                 = "my-gcp-project"
   gcp_role_name                  = "my-volterra-role"
   gcp_service_account_name       = "my-volterra-sa"
