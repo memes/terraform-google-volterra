@@ -2,11 +2,11 @@ terraform {
   required_version = ">= 0.13.0"
   required_providers {
     google = {
-      version = ">= 3.58"
+      version = ">= 3.77"
     }
     volterra = {
       source  = "volterraedge/volterra"
-      version = ">= 0.2.1"
+      version = ">= 0.8.1"
     }
   }
 }
@@ -28,7 +28,7 @@ resource "random_id" "sa_id" {
 
 module "sa" {
   source       = "terraform-google-modules/service-accounts/google"
-  version      = "4.0.0"
+  version      = "4.0.2"
   project_id   = var.gcp_project_id
   prefix       = ""
   names        = [local.sa_name]
