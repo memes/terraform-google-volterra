@@ -126,7 +126,7 @@ locals {
     # Oregon
     us-west1 = {
       latitude  = 45.6319089
-      longitude = 121.2032169
+      longitude = -121.2032169
     }
     # Los Angeles
     us-west2 = {
