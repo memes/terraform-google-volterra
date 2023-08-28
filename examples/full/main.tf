@@ -2,11 +2,11 @@ terraform {
   required_version = ">= 0.13.0"
   required_providers {
     google = {
-      version = ">= 3.77"
+      version = ">= 4.57"
     }
     volterra = {
       source  = "volterraedge/volterra"
-      version = ">= 0.8.1"
+      version = "0.11.20"
     }
   }
 }

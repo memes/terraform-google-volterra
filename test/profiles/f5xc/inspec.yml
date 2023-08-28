@@ -1,0 +1,15 @@
+---
+name: f5xc
+title: Verifies that an F5 XC GCP VPC site meets expectations
+maintainer: Matthew Emes <memes@matthewemes.com>
+license: Apache-2.0
+version: 1.0.0
+supports:
+  - platform: os
+depends:
+  - name: inspec-volterra
+    path: /Users/memes/projects/personal/inspec-volterra/
+inputs:
+  - name: input_name
+    type: string
+    required: true

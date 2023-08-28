@@ -1,0 +1,31 @@
+---
+name: gcp
+title: Verifies that an F5 XC GCP VPC site meets expectations
+maintainer: Matthew Emes <memes@matthewemes.com>
+license: Apache-2.0
+version: 1.0.0
+supports:
+  - platform: gcp
+depends:
+  - name: inspec-gcp
+    git: https://github.com/inspec/inspec-gcp.git
+    tag: v1.10.39
+inputs:
+  - name: project_id
+    type: string
+    required: true
+  - name: region
+    type: string
+    required: true
+  - name: vpcs
+    type: hash
+    required: true
+  - name: input_name
+    type: string
+    required: true
+  - name: output_subnets_json
+    type: string
+    required: true
+  - name: output_vm_options_json
+    type: string
+    required: true

@@ -1,0 +1,21 @@
+# An optional prefix to apply to resource names
+prefix = "my-test"
+
+# The GCP project identifier to use
+project_id  = "my-gcp-project"
+
+# The GCP Compute Engine region where the resources will be provisioned
+region = "us-west1"
+
+# The F5 XC namespace to use for test resources
+namespace = "my-ns"
+
+# Optional labels to add to resources
+labels = {
+    "owner" = "tester-name"
+}
+
+# Optional annotations to add to resources
+annotations = {
+    "example.com/owner" = "tester-name"
+}

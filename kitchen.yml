@@ -1,0 +1,177 @@
+# spell-checker: disable
+# yamllint disable
+<%
+require 'open3'
+require 'json'
+report_dir = ENV['REPORT_DIR'] || 'test/reports'
+report_ts = ENV['REPORT_TS'] || Time.now.strftime('%Y-%m-%d-%H-%M-%S')
+tf_output, rc = Open3.capture2('terraform -chdir=test/setup output -json')
+if rc != 0
+  abort 'Failed to capture Terraform output from test/setup'
+end
+harness_outputs = JSON.parse(tf_output, { symbolize_names: true }).map { |k,v| [k, v[:value]] }.to_h
+
+def hash_to_input_var(params)
+  "{#{params.map do |k, v|
+        case v
+        when nil
+          "\\\"#{k.to_s}\\\"=null"
+        when Hash
+          "\\\"#{k.to_s}\\\"=#{hash_to_input_var(v)}"
+        when Array
+          "\\\"#{k.to_s}\\\"=[#{v.map do |e|
+               case e
+               when nil
+                "null"
+               when Hash
+                 hash_to_input_var(e)
+               when String
+                 "\\\"#{e}\\\""
+               else
+                 "#{e}"
+               end
+             end.join(',')}]"
+        when String
+          "\\\"#{k.to_s}\\\"=\\\"#{v}\\\""
+        else
+          "\\\"#{k.to_s}\\\"=#{v}"
+        end
+      end.join(',')}}"
+end
+
+prefix = harness_outputs[:prefix]
+
+default_vm_options = {
+  :disk_size => 80,
+  :instance_type => 'e2-standard-8',
+  :nodes_per_az => 0,
+  :os_version => nil,
+  :ssh_key => nil,
+  :sw_version => nil,
+  :zones => nil
+}
+
+default_site_options = {
+  :blocked_services => nil,
+  :log_receiver => nil,
+  :offline_survivability_mode => false,
+  :perf_mode => nil,
+  :sm_connection => nil
+}
+
+harness_inside_outside_global_networks = {
+  :inside => {
+    :name => harness_outputs[:inside_global],
+    :namespace => 'system',
+    :tenant => nil
+  },
+  :outside => {
+    :name => harness_outputs[:outside_global],
+    :namespace => 'system',
+    :tenant => nil
+  },
+  :forward_proxy => nil
+}
+
+harness_inside_only_global_networks = {
+  :inside => {
+    :name => harness_outputs[:inside_global],
+    :namespace => 'system',
+    :tenant => nil,
+    :forward_proxy => nil
+  },
+  :outside => nil
+}
+
+harness_outside_only_global_networks = {
+  :inside => nil,
+  :outside => {
+    :name => harness_outputs[:outside_global],
+    :namespace => 'system',
+    :tenant => nil,
+    :forward_proxy => nil
+  }
+}
+%>
+---
+driver:
+  name: terraform
+  command_timeout: 600
+  verify_version: true
+  variables:
+    subnets: '<%= hash_to_input_var({:inside => harness_outputs[:inside_self_link], :outside => harness_outputs[:outside_self_link]}) %>'
+    cloud_credential_name: <%= harness_outputs[:cloud_credential_name] %>
+    labels: '<%= hash_to_input_var(harness_outputs[:labels]) %>'
+    annotations: '<%= hash_to_input_var(harness_outputs[:annotations]) %>'
+
+provisioner:
+  name: terraform
+
+verifier:
+  name: terraform
+  color: true
+
+platforms:
+  - name: root-min
+    driver:
+      root_module_directory: test/fixtures/root
+      variables:
+        name: <%= "#{prefix}-root-min" %>
+  - name: root-vm-options
+    driver:
+      root_module_directory: test/fixtures/root
+      variables:
+        name: <%= "#{prefix}-root-vmopts" %>
+        description: Overriding VM options
+        vm_options: '<%= hash_to_input_var(:disk_size => 100, :instance_type => 'n1-standard-8', :nodes_per_az => 2, :os_version => '7.2009.27', :ssh_key => harness_outputs[:ssh_pubkey], :sw_version => 'crt-20230327-2320', :zones => harness_outputs[:zones][0, 1]) %>'
+  - name: root-both-global
+    driver:
+      root_module_directory: test/fixtures/root
+      variables:
+        name: <%= "#{prefix}-root-both-global" %>
+        description: Setting inside and outside networks to corresponding global networks
+        global_networks: '<%= hash_to_input_var(harness_inside_outside_global_networks) %>'
+  - name: root-inside-global
+    driver:
+      root_module_directory: test/fixtures/root
+      variables:
+        name: <%= "#{prefix}-root-inside-global" %>
+        global_networks: '<%= hash_to_input_var(harness_inside_only_global_networks) %>'
+  - name: root-outside-global
+    driver:
+      root_module_directory: test/fixtures/root
+      variables:
+        name: <%= "#{prefix}-root-outside-global" %>
+        global_networks: '<%= hash_to_input_var(harness_outside_only_global_networks) %>'
+  - name: root-simple-route-outside
+    driver:
+      root_module_directory: test/fixtures/root
+      variables:
+        name: <%= "#{prefix}-root-sroute-out" %>
+        global_networks: '<%= hash_to_input_var(harness_inside_only_global_networks) %>'
+        static_routes: '<%= hash_to_input_var({:outside => {:simple => ['10.0.0.0/8'], :custom => nil}, :inside => nil}) %>'
+  - name: root-custom-route-inside-defgw
+    driver:
+      root_module_directory: test/fixtures/root
+      variables:
+        name: <%= "#{prefix}-root-foo" %>
+        global_networks: '<%= hash_to_input_var(harness_inside_only_global_networks) %>'
+        static_routes: '<%= hash_to_input_var({:outside => nil, :inside => {:custom => [{:type => 'NEXT_HOP_DEFAULT_GATEWAY', :attrs => ['ROUTE_ATTR_NO_OP'], :labels => nil, :interface => nil, :address => nil, :subnets => ["10.0.0.0/8"]}]}}) %>'
+
+suites:
+  - name: gcp-vpc
+    verifier:
+      name: terraform
+      systems:
+        - name: gcp
+          backend: gcp
+          attrs:
+            - test/setup/harness.yml
+          profile_locations:
+            - test/profiles/gcp
+        - name: local
+          backend: local
+          attrs:
+            - test/setup/harness.yml
+          profile_locations:
+            - test/profiles/f5xc
