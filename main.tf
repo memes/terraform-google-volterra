@@ -8,7 +8,7 @@ terraform {
     volterra = {
       source = "volterraedge/volterra"
       # NOTE: Performance enhancement mode changed again in 0.11.20
-      version = "0.11.20"
+      version = "0.11.25"
     }
   }
 }
