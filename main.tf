@@ -41,7 +41,7 @@ locals {
 
 module "regions" {
   source  = "memes/region-detail/google"
-  version = "1.1.0"
+  version = "1.1.2"
   regions = [
     data.google_compute_subnetwork.outside.region,
   ]
