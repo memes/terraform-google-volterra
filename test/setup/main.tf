@@ -61,28 +61,7 @@ resource "random_shuffle" "zones" {
 }
 
 locals {
-  prefix = random_pet.prefix.id
-  labels = merge({
-    source      = "terraform-volterra-gcp-vpc-site"
-    provisioner = "terraform"
-    use-case    = "automated-testing"
-    product     = "terraform-google-volterra"
-    driver      = "kitchen-terraform"
-  }, var.labels)
-  annotations = merge({
-    "community.f5.com/source"      = "github.com/memes/terraform-volterra-gcp-vpc-site"
-    "community.f5.com/provisioner" = "terraform"
-    "community.f5.com/use-case"    = "automated-testing"
-    "community.f5.com/product"     = "terraform-google-volterra"
-    "community.f5.com/driver"      = "kitchen-terraform"
-  }, var.annotations)
-  gcp_labels = merge({
-    source      = "terraform-volterra-gcp-vpc-site"
-    provisioner = "terraform"
-    use-case    = "automated-testing"
-    product     = "terraform-google-volterra"
-    driver      = "kitchen-terraform"
-  }, var.labels)
+  prefix     = random_pet.prefix.id
   test_cidrs = coalescelist(var.test_cidrs, [format("%s/32", trimspace(data.http.my_address.response_body))])
   cidrs = {
     outside = {
@@ -134,8 +113,8 @@ resource "volterra_dc_cluster_group" "dc_outside" {
   name        = format("%s-outside", local.prefix)
   namespace   = "system" # var.namespace
   description = format("Outside DC cluster group (%s)", local.prefix)
-  annotations = local.annotations
-  labels      = local.labels
+  annotations = var.annotations
+  labels      = var.labels
 }
 
 resource "volterra_virtual_network" "outside_global" {
@@ -143,8 +122,8 @@ resource "volterra_virtual_network" "outside_global" {
   namespace      = "system"
   global_network = true
   description    = format("Outside test global network (%s)", local.prefix)
-  annotations    = local.annotations
-  labels         = local.labels
+  annotations    = var.annotations
+  labels         = var.labels
 }
 
 module "inside" {
@@ -172,8 +151,8 @@ resource "volterra_dc_cluster_group" "dc_inside" {
   name        = format("%s-inside", local.prefix)
   namespace   = "system" # var.namespace
   description = format("Inside DC cluster group (%s)", local.prefix)
-  annotations = local.annotations
-  labels      = local.labels
+  annotations = var.annotations
+  labels      = var.labels
 }
 
 resource "volterra_virtual_network" "inside_global" {
@@ -181,8 +160,8 @@ resource "volterra_virtual_network" "inside_global" {
   namespace      = "system"
   global_network = true
   description    = format("Inside test global network (%s)", local.prefix)
-  annotations    = local.annotations
-  labels         = local.labels
+  annotations    = var.annotations
+  labels         = var.labels
 }
 
 resource "google_compute_firewall" "test_ingress" {
@@ -243,8 +222,8 @@ resource "volterra_cloud_credentials" "xc" {
   name        = format("%s-gcp", local.prefix)
   namespace   = "system"
   description = format("GCP credentials (%s)", local.prefix)
-  annotations = local.annotations
-  labels      = local.labels
+  annotations = var.annotations
+  labels      = var.labels
   gcp_cred_file {
     credential_file {
       clear_secret_info {
@@ -281,16 +260,16 @@ resource "volterra_forward_proxy_policy" "allow_test" {
   any_proxy   = true
   allow_all   = true
   description = format("Test allow-all forward proxy policy (%s)", local.prefix)
-  annotations = local.annotations
-  labels      = local.labels
+  annotations = var.annotations
+  labels      = var.labels
 }
 
 resource "volterra_enhanced_firewall_policy" "allow_test" {
   name        = format("%s-allow-test", local.prefix)
   namespace   = "system"
   description = format("Test enhanced firewall policy (%s)", local.prefix)
-  annotations = local.annotations
-  labels      = local.labels
+  annotations = var.annotations
+  labels      = var.labels
   allowed_sources {
     prefix = local.test_cidrs
   }

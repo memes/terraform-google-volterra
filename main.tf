@@ -6,9 +6,8 @@ terraform {
       version = ">= 4.57"
     }
     volterra = {
-      source = "volterraedge/volterra"
-      # NOTE: Performance enhancement mode changed again in 0.11.20
-      version = "0.11.20"
+      source  = "volterraedge/volterra"
+      version = ">= 0.11.20"
     }
   }
 }
@@ -28,14 +27,6 @@ data "google_compute_zones" "zones" {
 }
 
 locals {
-  labels = merge({
-    source      = "terraform-volterra-gcp-vpc-site"
-    provisioner = "terraform"
-  }, var.labels)
-  annotations = merge({
-    "community.f5.com/source"      = "github.com/memes/terraform-volterra-gcp-vpc-site"
-    "community.f5.com/provisioner" = "terraform"
-  }, var.annotations)
   zones = coalescelist(try(var.vm_options.zones, []), data.google_compute_zones.zones.names)
 }
 
@@ -51,8 +42,8 @@ resource "volterra_gcp_vpc_site" "site" {
   name          = var.name
   namespace     = "system"
   description   = coalesce(var.description, "GCP VPC Site")
-  annotations   = local.annotations
-  labels        = local.labels
+  annotations   = var.annotations
+  labels        = var.labels
   disk_size     = try(var.vm_options.disk_size, 80)
   gcp_labels    = var.gcp_labels
   gcp_region    = data.google_compute_subnetwork.outside.region

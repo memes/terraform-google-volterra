@@ -60,15 +60,15 @@ output "ssh_pubkey" {
 }
 
 output "labels" {
-  value = local.labels
+  value = var.labels
 }
 
 output "annotations" {
-  value = local.annotations
+  value = var.annotations
 }
 
 output "gcp_labels" {
-  value = local.gcp_labels
+  value = var.gcp_labels
 }
 
 
