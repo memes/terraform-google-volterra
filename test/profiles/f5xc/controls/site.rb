@@ -6,12 +6,12 @@ control 'site' do
   name = input('input_name')
   description = input('input_description', value: 'GCP VPC Site')
 
-  describe volterra_site(name: name) do
+  describe volterra_site(name:) do
     it { should exist }
     its('metadata.description') { should cmp description }
     its('address') { should be_nil.or be_empty }
     its('bgp_peer_address') { should be_nil.or be_empty }
-    its('bgp_router_id') { should be_nil.or be_empty}
+    its('bgp_router_id') { should be_nil.or be_empty }
     its('ce_site_mode') { should cmp 'CE_SITE_MODE_INGRESS_EGRESS_GW' }
     its('connected_re.count') { should eq 2 }
     its('connected_re_for_config.count') { should be >= 1 }
