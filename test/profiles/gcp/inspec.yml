@@ -17,6 +17,9 @@ inputs:
   - name: region
     type: string
     required: true
+  - name: ssh_key
+    type: string
+    required: true
   - name: vpcs
     type: hash
     required: true

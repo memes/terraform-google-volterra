@@ -1,13 +1,17 @@
 terraform {
-  required_version = ">= 1.1"
+  required_version = ">= 1.2"
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 4.57"
+      version = ">= 5.22"
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = ">= 0.11"
     }
     volterra = {
       source  = "volterraedge/volterra"
-      version = ">= 0.11.20"
+      version = ">= 0.11.31"
     }
   }
 }
@@ -48,9 +52,7 @@ resource "volterra_gcp_vpc_site" "site" {
   gcp_labels    = var.gcp_labels
   gcp_region    = data.google_compute_subnetwork.outside.region
   instance_type = try(var.vm_options.instance_type, "e2-standard-8")
-  # TODO @memes - nodes_per_az is not defined in the OpenAPI spec; is this used at all?
-  nodes_per_az = try(var.vm_options.nodes_per_az, 0)
-  ssh_key      = try(var.vm_options.ssh_key, null)
+  ssh_key       = trimspace(var.ssh_key)
 
   coordinates {
     latitude  = module.regions.results[data.google_compute_subnetwork.outside.region].latitude
@@ -79,6 +81,7 @@ resource "volterra_gcp_vpc_site" "site" {
       }
     }
   }
+  # TODO @memes - should fallback be block_all_services or default_blocked_services?
   default_blocked_services = try(length(var.site_options.blocked_services), 0) == 0
 
   dynamic "log_receiver" {
@@ -91,8 +94,18 @@ resource "volterra_gcp_vpc_site" "site" {
   }
   logs_streaming_disabled = try(length(var.site_options.log_receiver), 0) == 0
 
-  offline_survivability_mode {
-    enable_offline_survivability_mode = try(var.site_options.offline_survivability_mode, false)
+  dynamic "offline_survivability_mode" {
+    for_each = try(var.site_options.offline_survivability_mode, false) ? ["enable"] : []
+    content {
+      enable_offline_survivability_mode = true
+    }
+  }
+
+  dynamic "offline_survivability_mode" {
+    for_each = try(var.site_options.offline_survivability_mode, false) ? [] : ["disable"]
+    content {
+      no_offline_survivability_mode = true
+    }
   }
 
   dynamic "os" {
@@ -198,22 +211,6 @@ resource "volterra_gcp_vpc_site" "site" {
                 tenant    = global_network_connections.value.tenant
               }
             }
-            # TODO @memes - enable_forward_proxy property is not defined in OpenAPI spec
-            # specification for ingress_egress_gw; investigate
-            # dynamic "enable_forward_proxy" {
-            #   for_each = try(global_network_connections.value.forward_proxy, null) != null ? { proxy = global_network_connections.value.forward_proxy } : {}
-            #   content {
-            #     connection_timeout   = 2000
-            #     max_connect_attempts = 1
-            #     tls_intercept {
-            #       enable_for_all_domains = true
-            #     }
-            #     no_interception       = true
-            #     white_listed_ports    = []
-            #     white_listed_prefixes = []
-            #   }
-            # }
-            # disable_forward_proxy = try(global_network_connections.value.forward_proxy, null) == null ? true : null
           }
         }
         dynamic "global_network_connections" {
@@ -226,22 +223,6 @@ resource "volterra_gcp_vpc_site" "site" {
                 tenant    = global_network_connections.value.tenant
               }
             }
-            # TODO @memes - enable_forward_proxy property is not defined in OpenAPI spec
-            # specification for ingress_egress_gw; investigate
-            # dynamic "enable_forward_proxy" {
-            #   for_each =try(global_network_connections.value.forward_proxy, null) != null ? { proxy = global_network_connections.value.forward_proxy } : {}
-            #   content {
-            #     connection_timeout   = 2000
-            #     max_connect_attempts = 1
-            #     tls_intercept {
-            #       enable_for_all_domains = true
-            #     }
-            #     no_interception       = true
-            #     white_listed_ports    = []
-            #     white_listed_prefixes = []
-            #   }
-            # }
-            # disable_forward_proxy = try(global_network_connections.value.forward_proxy, null) == null ? true : null
           }
         }
 
@@ -362,7 +343,7 @@ resource "volterra_gcp_vpc_site" "site" {
         }
 
         dynamic "static_route_list" {
-          for_each = try(outside_static_routes.value.custom, null) != null && try(length(outside_static_routes.value.custom), 0) > 0 ? { custom = outside_static_routes.value.custom } : {}
+          for_each = try(outside_static_routes.value.custom, null) != null ? { for i, v in outside_static_routes.value.custom : "${i}" => v } : {}
           content {
             custom_static_route {
               attrs  = static_route_list.value.attrs
@@ -445,6 +426,12 @@ resource "volterra_gcp_vpc_site" "site" {
     sm_connection_pvt_ip    = coalesce(try(var.site_options.sm_connection, "unspecified"), "unspecified") == "pvt_ip" ? true : null
   }
 
+  # Custom DNS
+
+  # Private connectivity
+
+  # Voltstack
+
   lifecycle {
     # Annotations and labels are often changed outside of provisioning, so ignore
     # any changes to those fields.
@@ -455,7 +442,33 @@ resource "volterra_gcp_vpc_site" "site" {
   }
 }
 
-resource "volterra_tf_params_action" "site" {
+# With provider v0.11.31 there is an RPC error raised if post-site creation validation has not completed before starting
+# an 'apply'. This adds a delay between site creation/update and plan/apply, avoiding the RPC error.
+# TODO @memes - these values are abitrary
+resource "time_sleep" "pause_before_action" {
+  create_duration  = "15s"
+  destroy_duration = "60s"
+
+  depends_on = [
+    volterra_gcp_vpc_site.site,
+  ]
+}
+
+# Make sure a TF plan for the GCP VPC resources is successful before applying.
+# TODO @memes - track upstream and maybe revert to one-step apply
+resource "volterra_tf_params_action" "plan" {
+  site_name        = volterra_gcp_vpc_site.site.name
+  site_kind        = "gcp_vpc_site"
+  action           = "plan"
+  wait_for_action  = true
+  ignore_on_update = false
+
+  depends_on = [
+    time_sleep.pause_before_action,
+  ]
+}
+
+resource "volterra_tf_params_action" "apply" {
   site_name        = volterra_gcp_vpc_site.site.name
   site_kind        = "gcp_vpc_site"
   action           = "apply"
@@ -463,6 +476,6 @@ resource "volterra_tf_params_action" "site" {
   ignore_on_update = false
 
   depends_on = [
-    volterra_gcp_vpc_site.site,
+    volterra_tf_params_action.plan,
   ]
 }

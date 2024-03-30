@@ -95,18 +95,14 @@ variable "vm_options" {
   type = object({
     disk_size     = number
     instance_type = string
-    nodes_per_az  = number
     os_version    = string
-    ssh_key       = string
     sw_version    = string
     zones         = list(string)
   })
   default = {
     disk_size     = 80
     instance_type = "n2-standard-8"
-    nodes_per_az  = 0
     os_version    = null
-    ssh_key       = null
     sw_version    = null
     zones         = null
   }
@@ -226,4 +222,15 @@ variable "static_routes" {
     })
   })
   default = null
+}
+
+variable "ssh_key" {
+  type        = string
+  nullable    = false
+  description = <<-EOD
+  The SSH Public Key that will be installed on CE nodes to allow access.
+
+  E.g.
+  ssh_key = "ssh-rsa AAAAB3...acw=="
+  EOD
 }
