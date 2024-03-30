@@ -1,7 +1,10 @@
 # spell-checker: ignore fileignoreconfig
 ---
+version: ""
 fileignoreconfig:
 - filename: test/setup/README.md
   checksum: 809cb20c90a9fea87a7a08061cde982e49dd46e512853732b6fbbb69eeac4dc7
 - filename: test/profiles/gcp/controls/mig.rb
   checksum: adbb313f3258b6b75c12ca8cef67079bd7825a9e4be855a30004e136211733c2
+- filename: README.md
+  checksum: cc0990ab16086f62c08c0741a164f2e83aef5fdf3b8c47c47c32307b9a7e9147
