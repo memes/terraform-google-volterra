@@ -221,7 +221,7 @@ resource "google_service_account_key" "xc" {
 
 module "xc_role" {
   source           = "memes/f5-distributed-cloud-role/google"
-  version          = "1.0.3"
+  version          = "1.0.6"
   target_id        = var.project_id
   random_id_prefix = replace(format("%s-xc", local.prefix), "/[^a-z0-9_.]/", "_")
   title            = "F5 XC role for Google VPC testing"

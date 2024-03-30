@@ -1,3 +1,5 @@
 # spell-checker: ignore fileignoreconfig
 ---
 fileignoreconfig:
+- filename: test/setup/README.md
+  checksum: 809cb20c90a9fea87a7a08061cde982e49dd46e512853732b6fbbb69eeac4dc7

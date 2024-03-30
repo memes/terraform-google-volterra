@@ -13,6 +13,7 @@ test/reports/*
 .kitchen
 kitchen.local.yml
 test/setup/harness.yml
+test/setup/*-ssh*
 
 # Ignore Terraform state and automatic var files - except examples
 .terraform
