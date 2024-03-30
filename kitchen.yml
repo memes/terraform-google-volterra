@@ -96,13 +96,16 @@ harness_outside_only_global_networks = {
 ---
 driver:
   name: terraform
-  command_timeout: 600
   verify_version: true
   variables:
     subnets: '<%= hash_to_input_var({:inside => harness_outputs[:inside_self_link], :outside => harness_outputs[:outside_self_link]}) %>'
     cloud_credential_name: <%= harness_outputs[:cloud_credential_name] %>
     labels: '<%= hash_to_input_var(harness_outputs[:labels]) %>'
     annotations: '<%= hash_to_input_var(harness_outputs[:annotations]) %>'
+
+transport:
+  name: terraform
+  command_timeout: 600
 
 provisioner:
   name: terraform
@@ -113,46 +116,53 @@ verifier:
 
 platforms:
   - name: root-min
-    driver:
+    transport:
       root_module_directory: test/fixtures/root
+    driver:
       variables:
         name: <%= "#{prefix}-root-min" %>
   - name: root-vm-options
-    driver:
+    transport:
       root_module_directory: test/fixtures/root
+    driver:
       variables:
         name: <%= "#{prefix}-root-vmopts" %>
         description: Overriding VM options
         vm_options: '<%= hash_to_input_var(:disk_size => 100, :instance_type => 'n1-standard-8', :nodes_per_az => 2, :os_version => '7.2009.27', :ssh_key => harness_outputs[:ssh_pubkey], :sw_version => 'crt-20230327-2320', :zones => harness_outputs[:zones][0, 1]) %>'
   - name: root-both-global
-    driver:
+    transport:
       root_module_directory: test/fixtures/root
+    driver:
       variables:
         name: <%= "#{prefix}-root-both-global" %>
         description: Setting inside and outside networks to corresponding global networks
         global_networks: '<%= hash_to_input_var(harness_inside_outside_global_networks) %>'
   - name: root-inside-global
-    driver:
+    transport:
       root_module_directory: test/fixtures/root
+    driver:
       variables:
         name: <%= "#{prefix}-root-inside-global" %>
         global_networks: '<%= hash_to_input_var(harness_inside_only_global_networks) %>'
   - name: root-outside-global
-    driver:
+    transport:
       root_module_directory: test/fixtures/root
+    driver:
       variables:
         name: <%= "#{prefix}-root-outside-global" %>
         global_networks: '<%= hash_to_input_var(harness_outside_only_global_networks) %>'
   - name: root-simple-route-outside
-    driver:
+    transport:
       root_module_directory: test/fixtures/root
+    driver:
       variables:
         name: <%= "#{prefix}-root-sroute-out" %>
         global_networks: '<%= hash_to_input_var(harness_inside_only_global_networks) %>'
         static_routes: '<%= hash_to_input_var({:outside => {:simple => ['10.0.0.0/8'], :custom => nil}, :inside => nil}) %>'
   - name: root-custom-route-inside-defgw
-    driver:
+    transport:
       root_module_directory: test/fixtures/root
+    driver:
       variables:
         name: <%= "#{prefix}-root-foo" %>
         global_networks: '<%= hash_to_input_var(harness_inside_only_global_networks) %>'

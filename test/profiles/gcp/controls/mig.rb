@@ -2,6 +2,7 @@
 
 require 'json'
 
+# rubocop:disable Metrics/BlockLength
 control 'instance-group-manager' do
   title 'Ensure instance group manager meets expectation'
   impact 0.5
@@ -9,10 +10,10 @@ control 'instance-group-manager' do
   region = input('region')
   vpcs = input('vpcs')
   name = input('input_name')
-  subnets = JSON.parse(input('output_subnets_json'), { symbolize_names: true})
+  subnets = JSON.parse(input('output_subnets_json'), { symbolize_names: true })
   vm_options = JSON.parse(input('output_vm_options_json'), { symbolize_names: true })
 
-  manager = google_compute_region_instance_group_manager(project: project_id, region: region, name: name)
+  manager = google_compute_region_instance_group_manager(project: project_id, region:, name:)
   describe manager do
     it { should exist }
     its('target_size') { should eq 3 }
@@ -21,7 +22,8 @@ control 'instance-group-manager' do
     its('instance_template') { should match(/#{name}-[0-9]+$/) }
   end
 
-  describe google_compute_region_instance_group(project: project_id, region: region, name: manager.instance_group.split('/')[-1]) do
+  describe google_compute_region_instance_group(project: project_id, region:,
+                                                name: manager.instance_group.split('/')[-1]) do
     it { should exist }
     its('network') { should cmp vpcs[:outside][:self_link] }
   end
@@ -39,9 +41,13 @@ control 'instance-group-manager' do
     its('properties.network_interfaces.last.subnetwork') { should cmp subnets[:inside] }
   end
   if vm_options[:ssh_key]
-    metadata_ssh_key = template.properties.metadata['items'].select { |item| item['key'] == 'ssh-keys' }.map { |entry| entry['value'] }.first
-    describe metadata_ssh_key do
+    metadata_ssh_keys = template.properties.metadata['items'].select do |item|
+      item['key'] == 'ssh-keys'
+    end
+    first_metadata_ssh_key = metadata_ssh_keys.map { |entry| entry['value'] }.first
+    describe first_metadata_ssh_key do
       it { should cmp "centos:#{vm_options[:ssh_key].strip}" }
     end
   end
 end
+# rubocop:enable Metrics/BlockLength

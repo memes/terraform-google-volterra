@@ -44,15 +44,8 @@ module "volterra_sa" {
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 0.13.0 |
-| <a name="requirement_google"></a> [google](#requirement\_google) | >= 3.77 |
-| <a name="requirement_volterra"></a> [volterra](#requirement\_volterra) | >= 0.8.1 |
-
-## Providers
-
-| Name | Version |
-|------|---------|
-| <a name="provider_random"></a> [random](#provider\_random) | n/a |
-| <a name="provider_volterra"></a> [volterra](#provider\_volterra) | >= 0.8.1 |
+| <a name="requirement_google"></a> [google](#requirement\_google) | >= 4.57 |
+| <a name="requirement_volterra"></a> [volterra](#requirement\_volterra) | 0.11.20 |
 
 ## Modules
 
@@ -66,7 +59,7 @@ module "volterra_sa" {
 | Name | Type |
 |------|------|
 | [random_id.sa_id](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id) | resource |
-| [volterra_cloud_credentials.sa](https://registry.terraform.io/providers/volterraedge/volterra/latest/docs/resources/cloud_credentials) | resource |
+| [volterra_cloud_credentials.sa](https://registry.terraform.io/providers/volterraedge/volterra/0.11.20/docs/resources/cloud_credentials) | resource |
 
 ## Inputs
 
