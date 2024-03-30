@@ -67,7 +67,7 @@ module "restricted_apis" {
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.1 |
 | <a name="requirement_google"></a> [google](#requirement\_google) | >= 4.57 |
-| <a name="requirement_volterra"></a> [volterra](#requirement\_volterra) | 0.11.20 |
+| <a name="requirement_volterra"></a> [volterra](#requirement\_volterra) | >= 0.11.20 |
 
 ## Modules
 
@@ -79,8 +79,8 @@ module "restricted_apis" {
 
 | Name | Type |
 |------|------|
-| [volterra_gcp_vpc_site.site](https://registry.terraform.io/providers/volterraedge/volterra/0.11.20/docs/resources/gcp_vpc_site) | resource |
-| [volterra_tf_params_action.site](https://registry.terraform.io/providers/volterraedge/volterra/0.11.20/docs/resources/tf_params_action) | resource |
+| [volterra_gcp_vpc_site.site](https://registry.terraform.io/providers/volterraedge/volterra/latest/docs/resources/gcp_vpc_site) | resource |
+| [volterra_tf_params_action.site](https://registry.terraform.io/providers/volterraedge/volterra/latest/docs/resources/tf_params_action) | resource |
 | [google_compute_subnetwork.inside](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/compute_subnetwork) | data source |
 | [google_compute_subnetwork.outside](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/compute_subnetwork) | data source |
 | [google_compute_zones.zones](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/compute_zones) | data source |
