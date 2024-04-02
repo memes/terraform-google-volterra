@@ -3,11 +3,11 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 4.57"
+      version = ">= 5.22"
     }
     volterra = {
       source  = "volterraedge/volterra"
-      version = "0.11.20"
+      version = ">= 0.11.31"
     }
   }
 }
@@ -27,4 +27,5 @@ module "test" {
   network_policies       = var.network_policies
   global_networks        = var.global_networks
   static_routes          = var.static_routes
+  ssh_key                = var.ssh_key
 }

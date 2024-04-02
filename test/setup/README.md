@@ -33,12 +33,12 @@ gcr_location = "EU"
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.2 |
-| <a name="requirement_google"></a> [google](#requirement\_google) | >= 4.57 |
-| <a name="requirement_http"></a> [http](#requirement\_http) | >= 3.2 |
-| <a name="requirement_local"></a> [local](#requirement\_local) | >= 2.2 |
-| <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.3 |
+| <a name="requirement_google"></a> [google](#requirement\_google) | >= 5.22 |
+| <a name="requirement_http"></a> [http](#requirement\_http) | >= 3.4 |
+| <a name="requirement_local"></a> [local](#requirement\_local) | >= 2.5 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.6 |
 | <a name="requirement_tls"></a> [tls](#requirement\_tls) | >= 4.0 |
-| <a name="requirement_volterra"></a> [volterra](#requirement\_volterra) | 0.11.20 |
+| <a name="requirement_volterra"></a> [volterra](#requirement\_volterra) | >= 0.11.31 |
 
 ## Modules
 
@@ -46,12 +46,13 @@ gcr_location = "EU"
 |------|--------|---------|
 | <a name="module_inside"></a> [inside](#module\_inside) | memes/multi-region-private-network/google | 2.0.0 |
 | <a name="module_outside"></a> [outside](#module\_outside) | memes/multi-region-private-network/google | 2.0.0 |
-| <a name="module_xc_role"></a> [xc\_role](#module\_xc\_role) | memes/f5-distributed-cloud-role/google | 1.0.6 |
+| <a name="module_xc_role"></a> [xc\_role](#module\_xc\_role) | memes/f5-distributed-cloud-role/google | 1.0.7 |
 
 ## Resources
 
 | Name | Type |
 |------|------|
+| [f5xc_blindfold.xc](https://registry.terraform.io/providers/memes/f5xc/latest/docs/resources/blindfold) | resource |
 | [google_compute_firewall.test_ingress](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_firewall) | resource |
 | [google_project_iam_member.xc](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/project_iam_member) | resource |
 | [google_service_account.xc](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_account) | resource |
@@ -62,13 +63,13 @@ gcr_location = "EU"
 | [random_pet.prefix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/pet) | resource |
 | [random_shuffle.zones](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/shuffle) | resource |
 | [tls_private_key.ssh](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key) | resource |
-| [volterra_cloud_credentials.xc](https://registry.terraform.io/providers/volterraedge/volterra/0.11.20/docs/resources/cloud_credentials) | resource |
-| [volterra_dc_cluster_group.dc_inside](https://registry.terraform.io/providers/volterraedge/volterra/0.11.20/docs/resources/dc_cluster_group) | resource |
-| [volterra_dc_cluster_group.dc_outside](https://registry.terraform.io/providers/volterraedge/volterra/0.11.20/docs/resources/dc_cluster_group) | resource |
-| [volterra_enhanced_firewall_policy.allow_test](https://registry.terraform.io/providers/volterraedge/volterra/0.11.20/docs/resources/enhanced_firewall_policy) | resource |
-| [volterra_forward_proxy_policy.allow_test](https://registry.terraform.io/providers/volterraedge/volterra/0.11.20/docs/resources/forward_proxy_policy) | resource |
-| [volterra_virtual_network.inside_global](https://registry.terraform.io/providers/volterraedge/volterra/0.11.20/docs/resources/virtual_network) | resource |
-| [volterra_virtual_network.outside_global](https://registry.terraform.io/providers/volterraedge/volterra/0.11.20/docs/resources/virtual_network) | resource |
+| [volterra_cloud_credentials.xc](https://registry.terraform.io/providers/volterraedge/volterra/latest/docs/resources/cloud_credentials) | resource |
+| [volterra_dc_cluster_group.dc_inside](https://registry.terraform.io/providers/volterraedge/volterra/latest/docs/resources/dc_cluster_group) | resource |
+| [volterra_dc_cluster_group.dc_outside](https://registry.terraform.io/providers/volterraedge/volterra/latest/docs/resources/dc_cluster_group) | resource |
+| [volterra_enhanced_firewall_policy.allow_test](https://registry.terraform.io/providers/volterraedge/volterra/latest/docs/resources/enhanced_firewall_policy) | resource |
+| [volterra_forward_proxy_policy.allow_test](https://registry.terraform.io/providers/volterraedge/volterra/latest/docs/resources/forward_proxy_policy) | resource |
+| [volterra_virtual_network.inside_global](https://registry.terraform.io/providers/volterraedge/volterra/latest/docs/resources/virtual_network) | resource |
+| [volterra_virtual_network.outside_global](https://registry.terraform.io/providers/volterraedge/volterra/latest/docs/resources/virtual_network) | resource |
 | [google_compute_zones.zones](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/compute_zones) | data source |
 | [http_http.my_address](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
 

@@ -41,24 +41,6 @@ end
 
 prefix = harness_outputs[:prefix]
 
-default_vm_options = {
-  :disk_size => 80,
-  :instance_type => 'e2-standard-8',
-  :nodes_per_az => 0,
-  :os_version => nil,
-  :ssh_key => nil,
-  :sw_version => nil,
-  :zones => nil
-}
-
-default_site_options = {
-  :blocked_services => nil,
-  :log_receiver => nil,
-  :offline_survivability_mode => false,
-  :perf_mode => nil,
-  :sm_connection => nil
-}
-
 harness_inside_outside_global_networks = {
   :inside => {
     :name => harness_outputs[:inside_global],
@@ -102,10 +84,11 @@ driver:
     cloud_credential_name: <%= harness_outputs[:cloud_credential_name] %>
     labels: '<%= hash_to_input_var(harness_outputs[:labels]) %>'
     annotations: '<%= hash_to_input_var(harness_outputs[:annotations]) %>'
+    ssh_key: '<%= harness_outputs[:ssh_pubkey] %>'
 
 transport:
   name: terraform
-  command_timeout: 600
+  command_timeout: 1800
 
 provisioner:
   name: terraform
@@ -121,6 +104,7 @@ platforms:
     driver:
       variables:
         name: <%= "#{prefix}-root-min" %>
+        description: Minimal GCP Site declaration
   - name: root-vm-options
     transport:
       root_module_directory: test/fixtures/root
@@ -128,7 +112,7 @@ platforms:
       variables:
         name: <%= "#{prefix}-root-vmopts" %>
         description: Overriding VM options
-        vm_options: '<%= hash_to_input_var(:disk_size => 100, :instance_type => 'n1-standard-8', :nodes_per_az => 2, :os_version => '7.2009.27', :ssh_key => harness_outputs[:ssh_pubkey], :sw_version => 'crt-20230327-2320', :zones => harness_outputs[:zones][0, 1]) %>'
+        vm_options: '<%= hash_to_input_var(:disk_size => 100, :instance_type => 'n1-standard-8', :os_version => '9.2024.6', :sw_version => 'crt-20240326-2726', :zones => harness_outputs[:zones][0, 1]) %>'
   - name: root-both-global
     transport:
       root_module_directory: test/fixtures/root
@@ -143,6 +127,7 @@ platforms:
     driver:
       variables:
         name: <%= "#{prefix}-root-inside-global" %>
+        description: Setting inside network to corresponding global network
         global_networks: '<%= hash_to_input_var(harness_inside_only_global_networks) %>'
   - name: root-outside-global
     transport:
@@ -150,23 +135,41 @@ platforms:
     driver:
       variables:
         name: <%= "#{prefix}-root-outside-global" %>
+        description: Setting outside network to corresponding global network
         global_networks: '<%= hash_to_input_var(harness_outside_only_global_networks) %>'
+  # GCP VPC site does not support simple static routes on inside
+  # - name: root-simple-route-inside
+  #   transport:
+  #     root_module_directory: test/fixtures/root
+  #   driver:
+  #     variables:
+  #       name: <%= "#{prefix}-root-sroute-in" %>
+  #       description: Add a simple static route to inside network
+  #       static_routes: '<%= hash_to_input_var({:inside => {:simple => ['10.0.0.0/8'], :custom => nil}, :outside => nil}) %>'
   - name: root-simple-route-outside
     transport:
       root_module_directory: test/fixtures/root
     driver:
       variables:
         name: <%= "#{prefix}-root-sroute-out" %>
-        global_networks: '<%= hash_to_input_var(harness_inside_only_global_networks) %>'
+        description: Add a simple static route to outside network
         static_routes: '<%= hash_to_input_var({:outside => {:simple => ['10.0.0.0/8'], :custom => nil}, :inside => nil}) %>'
   - name: root-custom-route-inside-defgw
     transport:
       root_module_directory: test/fixtures/root
     driver:
       variables:
-        name: <%= "#{prefix}-root-foo" %>
-        global_networks: '<%= hash_to_input_var(harness_inside_only_global_networks) %>'
+        name: <%= "#{prefix}-root-croute-in" %>
+        description: Add a custom static route to inside network
         static_routes: '<%= hash_to_input_var({:outside => nil, :inside => {:custom => [{:type => 'NEXT_HOP_DEFAULT_GATEWAY', :attrs => ['ROUTE_ATTR_NO_OP'], :labels => nil, :interface => nil, :address => nil, :subnets => ["10.0.0.0/8"]}]}}) %>'
+  - name: root-custom-route-outside-defgw
+    transport:
+      root_module_directory: test/fixtures/root
+    driver:
+      variables:
+        name: <%= "#{prefix}-root-croute-out" %>
+        description: Add a custom static route to outside network
+        static_routes: '<%= hash_to_input_var({:inside => nil, :outside => {:simple => nil, :custom => [{:type => 'NEXT_HOP_DEFAULT_GATEWAY', :attrs => ['ROUTE_ATTR_NO_OP'], :labels => nil, :interface => nil, :address => nil, :subnets => ["10.0.0.0/8"]}]}}) %>'
 
 suites:
   - name: gcp-vpc
