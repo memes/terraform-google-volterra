@@ -8,7 +8,8 @@ supports:
   - platform: os
 depends:
   - name: inspec-volterra
-    path: /Users/memes/projects/personal/inspec-volterra/
+    git: https://github.com/memes/inspec-volterra.git
+    tag: v0.2.0
 inputs:
   - name: input_name
     type: string

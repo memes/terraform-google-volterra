@@ -1,21 +1,25 @@
 terraform {
   required_version = ">= 1.2"
   required_providers {
+    # TODO @memes - test harness requires pre-release of terrform-provider-f5xc for blindfold
+    f5xc = {
+      source = "memes/f5xc"
+    }
     google = {
       source  = "hashicorp/google"
-      version = ">= 4.57"
+      version = ">= 5.22"
     }
     http = {
       source  = "hashicorp/http"
-      version = ">= 3.2"
+      version = ">= 3.4"
     }
     local = {
       source  = "hashicorp/local"
-      version = ">= 2.2"
+      version = ">= 2.5"
     }
     random = {
       source  = "hashicorp/random"
-      version = ">= 3.3"
+      version = ">= 3.6"
     }
     tls = {
       source  = "hashicorp/tls"
@@ -23,7 +27,7 @@ terraform {
     }
     volterra = {
       source  = "volterraedge/volterra"
-      version = "0.11.20"
+      version = ">= 0.11.31"
     }
   }
 }
@@ -200,7 +204,7 @@ resource "google_service_account_key" "xc" {
 
 module "xc_role" {
   source           = "memes/f5-distributed-cloud-role/google"
-  version          = "1.0.6"
+  version          = "1.0.7"
   target_id        = var.project_id
   random_id_prefix = replace(format("%s-xc", local.prefix), "/[^a-z0-9_.]/", "_")
   title            = "F5 XC role for Google VPC testing"
@@ -218,6 +222,14 @@ resource "google_project_iam_member" "xc" {
   ]
 }
 
+resource "f5xc_blindfold" "xc" {
+  plaintext = google_service_account_key.xc.private_key
+  policy_document = {
+    name      = "ves-io-allow-volterra"
+    namespace = "shared"
+  }
+}
+
 resource "volterra_cloud_credentials" "xc" {
   name        = format("%s-gcp", local.prefix)
   namespace   = "system"
@@ -226,8 +238,8 @@ resource "volterra_cloud_credentials" "xc" {
   labels      = var.labels
   gcp_cred_file {
     credential_file {
-      clear_secret_info {
-        url = format("string:///%s", google_service_account_key.xc.private_key)
+      blindfold_secret_info {
+        location = format("string:///%s", f5xc_blindfold.xc.sealed)
       }
     }
   }
@@ -281,11 +293,12 @@ resource "local_file" "harness_yml" {
   content  = <<-EOC
   project_id: ${var.project_id}
   region: ${var.region}
+  ssh_key: ${trimspace(tls_private_key.ssh.public_key_openssh)}
   vpcs:
-    :outside:
-      :self_link: ${module.outside.self_link}
-    :inside:
-      :self_link: ${module.inside.self_link}
+    outside:
+      self_link: ${module.outside.self_link}
+    inside:
+      self_link: ${module.inside.self_link}
   EOC
   depends_on = [
     module.inside,

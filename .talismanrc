@@ -5,6 +5,18 @@ fileignoreconfig:
 - filename: test/setup/README.md
   checksum: 809cb20c90a9fea87a7a08061cde982e49dd46e512853732b6fbbb69eeac4dc7
 - filename: test/profiles/gcp/controls/mig.rb
-  checksum: adbb313f3258b6b75c12ca8cef67079bd7825a9e4be855a30004e136211733c2
+  checksum: 719e6a02b683224d7ac0f0f241d28d27ef3ac10c165eb533665dbde93282fa83
 - filename: README.md
-  checksum: cc0990ab16086f62c08c0741a164f2e83aef5fdf3b8c47c47c32307b9a7e9147
+  checksum: b894faa542beb54ed725645b672634bb7e15e0dab656e2844ddcff91ae739d6f
+- filename: test/fixtures/root/main.tf
+  checksum: 6904e9dd81acd681efc825d38267cc77dc74e5795f0e548c2588b053cf86157b
+- filename: test/fixtures/root/variables.tf
+  checksum: 0e581ec1bfe3a28f7e4a1aa9f8029ec71df1365f30935661a5578fd823e73f00
+- filename: main.tf
+  checksum: 118382210db4fa78aef859a9514cdb1126af2acfaa61c97fc5a0a1a2ba5492a4
+- filename: variables.tf
+  checksum: c5e9c99504662989e291c9377235eeecc7c97d5116b2f79bc35dcc823f4e2891
+- filename: kitchen.yml
+  checksum: d6cd0c6ccd93e7e1b555d1cea307223b5076ae586e51690bd2a282b953e8e237
+- filename: test/setup/main.tf
+  checksum: 84eb6536aab0c80653d790e783db581e68a63ff4fcff06253fd7653e90faaa78
