@@ -14,3 +14,11 @@ output "nodes" {
     A map of CE node names to values
     EOD
 }
+
+output "name" {
+  value = var.name
+}
+
+output "namespace" {
+  value = "system"
+}

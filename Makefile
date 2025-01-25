@@ -45,9 +45,9 @@ clean: $(wildcard $(TF_SETUP_SENTINEL))
 
 .PHONY: realclean
 realclean: clean
-	if test -d generated; then find generated -depth 1 -type d -exec rm -rf {} +; fi
-	if test -d tests/reports; then find tests/reports -depth 1 -type d -exec rm -rf {} +; fi
-	if test -d tests/ephemeral; then find tests/ephemeral -depth 1 -type d -exec rm -rf {} +; fi
+	# if test -d generated; then find generated -depth 1 -type d -exec rm -rf {} +; fi
+	# if test -d tests/reports; then find tests/reports -depth 1 -type d -exec rm -rf {} +; fi
+	# if test -d tests/ephemeral; then find tests/ephemeral -depth 1 -type d -exec rm -rf {} +; fi
 	find . -type d -name .terraform -exec rm -rf {} +
 	find . -type d -name terraform.tfstate.d -exec rm -rf {} +
 	find . -type f -name .terraform.lock.hcl -exec rm -f {} +

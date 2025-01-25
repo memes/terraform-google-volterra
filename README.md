@@ -56,7 +56,6 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_name"></a> [name](#input\_name) | The name to apply to the GCP VPC site. | `string` | n/a | yes |
-| <a name="input_project_id"></a> [project\_id](#input\_project\_id) | The GCP project identifier where the CE nodes will be created. If blank/null, the nodes will be created in the same<br/>project that contains the outside VPC network. | `string` | n/a | yes |
 | <a name="input_service_account"></a> [service\_account](#input\_service\_account) | The email address of the service account which will be used for CE instances. | `string` | n/a | yes |
 | <a name="input_subnets"></a> [subnets](#input\_subnets) | Provides the Compute Engine subnetworks to use for outside and, optionally,<br/>inside networking of deployed gateway. | <pre>object({<br/>    inside  = string<br/>    outside = string<br/>  })</pre> | n/a | yes |
 | <a name="input_annotations"></a> [annotations](#input\_annotations) | An optional set of key:value annotations that will be added to generated XC<br/>resources. | `map(string)` | `{}` | no |
@@ -70,6 +69,7 @@ No modules.
 | <a name="input_machine_type"></a> [machine\_type](#input\_machine\_type) | The machine type to use for CE nodes; this may be a standard GCE machine type, or a customised VM<br/>('custom-VCPUS-MEM\_IN\_MB'). Default value is 'n2-standard-8'. | `string` | `"n2-standard-8"` | no |
 | <a name="input_metadata"></a> [metadata](#input\_metadata) | Provide custom metadata values to add to each CE instances. | `map(string)` | `{}` | no |
 | <a name="input_network_policies"></a> [network\_policies](#input\_network\_policies) | n/a | <pre>object({<br/>    type = string<br/>    refs = list(object({<br/>      name      = string<br/>      namespace = string<br/>      tenant    = string<br/>  })) })</pre> | `null` | no |
+| <a name="input_project_id"></a> [project\_id](#input\_project\_id) | The GCP project identifier where the CE nodes will be created. If blank/null, the nodes will be created in the same<br/>project that contains the outside VPC network. | `string` | `null` | no |
 | <a name="input_site_options"></a> [site\_options](#input\_site\_options) | n/a | <pre>object({<br/>    blocked_services = map(object({<br/>      dns                = bool<br/>      ssh                = bool<br/>      web_user_interface = bool<br/>    }))<br/>    log_receiver = object({<br/>      name      = string<br/>      namespace = string<br/>      tenant    = string<br/>    })<br/>    offline_survivability_mode = bool<br/>    perf_mode                  = string<br/>    sm_connection              = string<br/>    ha                         = bool<br/>  })</pre> | <pre>{<br/>  "blocked_services": null,<br/>  "ha": true,<br/>  "log_receiver": null,<br/>  "offline_survivability_mode": false,<br/>  "perf_mode": null,<br/>  "sm_connection": null<br/>}</pre> | no |
 | <a name="input_ssh_key"></a> [ssh\_key](#input\_ssh\_key) | The SSH Public Key that will be installed on CE nodes to allow access.<br/><br/>E.g.<br/>ssh\_key = "ssh-rsa AAAAB3...acw==" | `string` | `null` | no |
 | <a name="input_static_routes"></a> [static\_routes](#input\_static\_routes) | n/a | <pre>object({<br/>    outside = object({<br/>      simple = list(string)<br/>      custom = list(object({<br/>        type   = string<br/>        attrs  = list(string)<br/>        labels = map(string)<br/>        interface = object({<br/>          name      = string<br/>          namespace = string<br/>          tenant    = string<br/>        })<br/>        address = string<br/>        subnets = list(string)<br/>      }))<br/>    })<br/>    inside = object({<br/>      # GCP VPC site does not support simple static routes on inside<br/>      # simple = list(string)<br/>      custom = list(object({<br/>        type   = string<br/>        attrs  = list(string)<br/>        labels = map(string)<br/>        interface = object({<br/>          name      = string<br/>          namespace = string<br/>          tenant    = string<br/>        })<br/>        address = string<br/>        subnets = list(string)<br/>      }))<br/>    })<br/>  })</pre> | `null` | no |
@@ -81,6 +81,8 @@ No modules.
 
 | Name | Description |
 |------|-------------|
+| <a name="output_name"></a> [name](#output\_name) | n/a |
+| <a name="output_namespace"></a> [namespace](#output\_namespace) | n/a |
 | <a name="output_nodes"></a> [nodes](#output\_nodes) | A map of CE node names to values |
 | <a name="output_smsv2_site_id"></a> [smsv2\_site\_id](#output\_smsv2\_site\_id) | The identifier of the F5 Distributed Cloud SMS v2 site. |
 <!-- END_TF_DOCS -->

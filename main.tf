@@ -32,14 +32,15 @@ data "google_compute_zones" "zones" {
 }
 
 locals {
-  // For HA launch 3 nodes named with numerical suffixes; non-HA will launch a single node
+  # For HA launch 3 nodes named with numerical suffixes; non-HA will launch a single node
+  # NOTE: This set will become the keys for conditional resources like sli addresses, compute vms, etc.
   ce_names = try(var.site_options.ha, true) ? formatlist("%s-%02d", var.name, range(0, 3)) : [var.name]
 }
 
 resource "random_shuffle" "zones" {
   input = data.google_compute_zones.zones.names
   keepers = {
-    project_id = var.project_id
+    project_id = coalesce(var.project_id, data.google_compute_subnetwork.outside.project)
     outside    = var.subnets.outside
   }
 }
@@ -144,9 +145,23 @@ resource "volterra_securemesh_site_v2" "site" {
       }
     }
   }
-  performance_enhancement_mode {
-    perf_mode_l7_enhanced = true
+
+  dynamic "performance_enhancement_mode" {
+    for_each = lower(coalesce(try(var.site_options.perf_mode, "l7"), "l7")) != "l3" ? { l7 = true } : {}
+    content {
+      perf_mode_l7_enhanced = true
+    }
   }
+
+  dynamic "performance_enhancement_mode" {
+    for_each = lower(coalesce(try(var.site_options.perf_mode, "l7"), "l7")) == "l3" ? { l3 = true } : {}
+    content {
+      perf_mode_l3_enhanced {
+        no_jumbo = true
+      }
+    }
+  }
+
   tunnel_dead_timeout = 0
   load_balancing {
     vip_vrrp_mode = "VIP_VRRP_DISABLE"
@@ -154,8 +169,14 @@ resource "volterra_securemesh_site_v2" "site" {
   no_s2s_connectivity_slo = true
   no_s2s_connectivity_sli = true
   local_vrf {
-    default_config     = true
-    default_sli_config = true
+    # dynamic "slo_config" {
+    #   for_each = try(var.static_routes.outside, null) == null ? {} : {}
+    #   static_routes {
+
+    #   }
+    # }
+    default_config     = try(var.static_routes.outside, null) == null ? true : null
+    default_sli_config = try(var.static_routes.inside, null) == null ? true : null
   }
   tunnel_type = "SITE_TO_SITE_TUNNEL_IPSEC_OR_SSL"
   re_select {
@@ -185,11 +206,15 @@ resource "volterra_token" "reg" {
   site_name   = volterra_securemesh_site_v2.site.name
   annotations = var.annotations
   labels      = var.labels
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "google_compute_address" "slo" {
   for_each     = { for name in local.ce_names : name => {} }
-  project      = var.project_id
+  project      = coalesce(var.project_id, data.google_compute_subnetwork.outside.project)
   name         = format("%s-slo", each.key)
   description  = format("Reserved for SLO on %s", each.key)
   subnetwork   = data.google_compute_subnetwork.outside.self_link
@@ -201,7 +226,7 @@ resource "google_compute_address" "slo" {
 
 resource "google_compute_address" "sli" {
   for_each     = length(data.google_compute_subnetwork.inside) == 0 ? {} : { for name in local.ce_names : name => {} }
-  project      = var.project_id
+  project      = coalesce(var.project_id, data.google_compute_subnetwork.outside.project)
   name         = format("%s-sli", each.key)
   description  = format("Reserved for SLI on %s", each.key)
   subnetwork   = data.google_compute_subnetwork.inside["sli"].self_link
@@ -213,7 +238,7 @@ resource "google_compute_address" "sli" {
 
 resource "google_compute_firewall" "outside_ce_ce_ingress" {
   for_each           = length(google_compute_address.slo) > 1 ? { enable = true } : {}
-  project            = var.project_id
+  project            = coalesce(var.project_id, data.google_compute_subnetwork.outside.project)
   name               = format("%s-slo-ce-ce-ingress", var.name)
   network            = data.google_compute_subnetwork.outside.network
   description        = "Allow ingress from CE to other CE nodes on SLO"
@@ -228,7 +253,7 @@ resource "google_compute_firewall" "outside_ce_ce_ingress" {
 
 resource "google_compute_firewall" "outside_ce_ce_egress" {
   for_each           = length(google_compute_address.slo) > 1 ? { enable = true } : {}
-  project            = var.project_id
+  project            = coalesce(var.project_id, data.google_compute_subnetwork.outside.project)
   name               = format("%s-slo-ce-ce-egress", var.name)
   network            = data.google_compute_subnetwork.outside.network
   description        = "Allow egress from CE to other CE nodes on SLO"
@@ -243,7 +268,7 @@ resource "google_compute_firewall" "outside_ce_ce_egress" {
 
 resource "google_compute_firewall" "inside_ce_ce_ingress" {
   for_each           = length(google_compute_address.sli) > 1 ? { enable = true } : {}
-  project            = var.project_id
+  project            = coalesce(var.project_id, data.google_compute_subnetwork.outside.project)
   name               = format("%s-sli-ce-ce-ingress", var.name)
   network            = data.google_compute_subnetwork.inside["sli"].network
   description        = "Allow ingress from CE to other CE nodes on SLI"
@@ -258,7 +283,7 @@ resource "google_compute_firewall" "inside_ce_ce_ingress" {
 
 resource "google_compute_firewall" "inside_ce_ce_egress" {
   for_each           = length(google_compute_address.sli) > 1 ? { enable = true } : {}
-  project            = var.project_id
+  project            = coalesce(var.project_id, data.google_compute_subnetwork.outside.project)
   name               = format("%s-sli-ce-ce-egress", var.name)
   network            = data.google_compute_subnetwork.inside["sli"].network
   description        = "Allow egress from CE to other CE nodes on SLI"
@@ -279,7 +304,7 @@ resource "google_compute_instance" "node" {
     sli_ip = try(google_compute_address.sli[name].address, null)
   } }
 
-  project = coalesce(try(var.vm_options.project_id, ""), data.google_compute_subnetwork.outside.project)
+  project = coalesce(var.project_id, data.google_compute_subnetwork.outside.project)
   name    = each.key
   zone    = each.value.zone
   labels  = var.gcp_labels

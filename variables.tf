@@ -248,11 +248,13 @@ variable "ssh_key" {
 }
 
 variable "project_id" {
-  type = string
+  type     = string
+  nullable = true
   validation {
     condition     = var.project_id == null ? true : can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.project_id))
     error_message = "The project_id variable must must be 6 to 30 lowercase letters, digits, or hyphens; it must start with a letter and cannot end with a hyphen."
   }
+  default     = null
   description = <<-EOD
   The GCP project identifier where the CE nodes will be created. If blank/null, the nodes will be created in the same
   project that contains the outside VPC network.
