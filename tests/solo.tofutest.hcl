@@ -58,6 +58,11 @@ run "provision" {
   }
 
   assert {
+    condition = volterra_securemesh_site_v2.site.description == "SMSv2 site for GCP"
+    error_message = "Expected description to be 'SMSv2 site for GCP', got '${coalesce(volterra_securemesh_site_v2.site.description, "null")}'"
+  }
+
+  assert {
     condition     = try(length(volterra_token.reg), 0) == 1
     error_message = "Expected 1 registration tokens, got ${try(length(volterra_token.reg), 0)}."
   }
@@ -66,16 +71,21 @@ run "provision" {
     condition     = try(length(google_compute_instance.node), 0) == 1
     error_message = "Expected 1 CE node, got ${try(length(google_compute_instance.node), 0)}."
   }
-}
 
-run "pause" {
-  command = apply
-
-  module {
-    source = "./tests/pause/"
-  }
-
-  variables {
-    delete_duration = "60s"
+  assert {
+    condition = alltrue([for k,v in try(google_compute_instance.node, {}): can(regex("-solo$", v.name))])
+    error_message = "Generated VM names do not match expectations, got '${join(",", [for k,v in try(google_compute_instance.node, {}):  v.name])}'"
   }
 }
+
+# run "pause" {
+#   command = apply
+
+#   module {
+#     source = "./tests/modules/pause/"
+#   }
+
+#   variables {
+#     delete_duration = "60s"
+#   }
+# }
