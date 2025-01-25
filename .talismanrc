@@ -7,16 +7,28 @@ fileignoreconfig:
 - filename: test/profiles/gcp/controls/mig.rb
   checksum: 719e6a02b683224d7ac0f0f241d28d27ef3ac10c165eb533665dbde93282fa83
 - filename: README.md
-  checksum: b894faa542beb54ed725645b672634bb7e15e0dab656e2844ddcff91ae739d6f
+  checksum: ce06a9e71223a38df45ed34a6063a25b86cb2772a8cc088606ff687a4d789c87
+  ignore_detectors:
+    - filecontent
 - filename: test/fixtures/root/main.tf
   checksum: 6904e9dd81acd681efc825d38267cc77dc74e5795f0e548c2588b053cf86157b
 - filename: test/fixtures/root/variables.tf
   checksum: 0e581ec1bfe3a28f7e4a1aa9f8029ec71df1365f30935661a5578fd823e73f00
 - filename: main.tf
-  checksum: 118382210db4fa78aef859a9514cdb1126af2acfaa61c97fc5a0a1a2ba5492a4
+  checksum: 70f2c5b3c0289bfa98a88d529b1561e8f61ece09cf251d5a3839369ed16c6745
+  ignore_detectors:
+    - filecontent
 - filename: variables.tf
   checksum: c5e9c99504662989e291c9377235eeecc7c97d5116b2f79bc35dcc823f4e2891
 - filename: kitchen.yml
   checksum: d6cd0c6ccd93e7e1b555d1cea307223b5076ae586e51690bd2a282b953e8e237
 - filename: test/setup/main.tf
-  checksum: 84eb6536aab0c80653d790e783db581e68a63ff4fcff06253fd7653e90faaa78
+  checksum: 81d6f152ddc2a78f6befd5b28b6fe0bc3fe4699323462bf539328ffdb3e4c3be
+  ignore_detectors:
+    - filecontent
+- filename: tests/solo.tofutest.hcl
+  checksum: 97252d26aafc4e2fc98522b8a9765cd16d5459e21421286e5c67780ebd0ec0cd
+- filename: tests/n4.tofutest.hcl
+  checksum: b0169fed9527589d9b2ed4486d991e6c40e98dc76a6b5499d235d934318ac91d
+- filename: tests/default.tofutest.hcl
+  checksum: 5d7c6da50301fa282cbef09a158196552716f403553af378bc80ea1536837f11

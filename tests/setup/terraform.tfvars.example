@@ -7,15 +7,20 @@ project_id  = "my-gcp-project"
 # The GCP Compute Engine region where the resources will be provisioned
 region = "us-west1"
 
-# The F5 XC namespace to use for test resources
+# The F5 XC namespace to use for resources
 namespace = "my-ns"
 
-# Optional labels to add to resources
+# Optional labels to add to F5 XC resources
 labels = {
     "owner" = "tester-name"
 }
 
-# Optional annotations to add to resources
+# Optional kubernetes annotations to add to F5 XC resources
 annotations = {
     "example.com/owner" = "tester-name"
+}
+
+# Optional labels to add to Google Cloud resources
+gcp_labels = {
+    "owner" = "tester-name"
 }

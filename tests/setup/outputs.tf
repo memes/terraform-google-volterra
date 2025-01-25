@@ -1,9 +1,18 @@
-output "harness_yml" {
-  value = abspath(local_file.harness_yml.filename)
+output "prefix" {
+  value       = random_pet.prefix.id
+  description = <<-EOD
+  The combination of random and user-supplied elements that were used for this test suite run.
+  EOD
 }
 
-output "prefix" {
-  value = local.prefix
+output "subnet_self_links" {
+  value = {
+    outside = module.outside.subnets_by_region[var.region].self_link
+    inside  = module.inside.subnets_by_region[var.region].self_link
+  }
+  description = <<-EOD
+  Self-links for the outside and inside VPC networks created for shared test harness.
+  EOD
 }
 
 output "inside_self_link" {
@@ -43,8 +52,12 @@ output "forward_proxy_policy" {
   }
 }
 
-output "cloud_credential_name" {
-  value = volterra_cloud_credentials.xc.name
+output "sa" {
+  value = google_service_account.xc.email
+}
+
+output "custom_ce_image" {
+  value = google_compute_image.xc.self_link
 }
 
 output "ssh_privkey_path" {
@@ -71,7 +84,29 @@ output "gcp_labels" {
   value = var.gcp_labels
 }
 
-
 output "zones" {
   value = random_shuffle.zones.result
+}
+
+output "region" {
+  value = var.region
+}
+
+output "namespace" {
+  value = var.namespace
+}
+
+output "outside_nat_tags" {
+  value = local.outside_nat_tags
+}
+
+output "inside_nat_tags" {
+  value = local.inside_nat_tags
+}
+
+output "bastion" {
+  value = {
+    ssh    = module.outside_bastion.ssh_command
+    tunnel = module.outside_bastion.tunnel_command
+  }
 }

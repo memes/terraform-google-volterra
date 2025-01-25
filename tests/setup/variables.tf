@@ -7,8 +7,10 @@ variable "project_id" {
   type = string
 }
 
+# Prefer us-central1 region because it tends to have all machine types available
 variable "region" {
-  type = string
+  type    = string
+  default = "us-central1"
 }
 
 variable "namespace" {

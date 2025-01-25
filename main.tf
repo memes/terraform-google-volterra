@@ -3,15 +3,15 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 5.22"
+      version = ">= 6.17"
     }
-    time = {
-      source  = "hashicorp/time"
-      version = ">= 0.11"
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.6"
     }
     volterra = {
-      source  = "volterraedge/volterra"
-      version = ">= 0.11.31"
+      source  = "registry.terraform.io/volterraedge/volterra"
+      version = ">= 0.11.42"
     }
   }
 }
@@ -21,49 +21,46 @@ data "google_compute_subnetwork" "outside" {
 }
 
 data "google_compute_subnetwork" "inside" {
-  self_link = var.subnets.inside
+  for_each  = coalesce(var.subnets.inside, "unspecified") == "unspecified" ? {} : { sli = var.subnets.inside }
+  self_link = each.value
 }
 
 data "google_compute_zones" "zones" {
-  project = data.google_compute_subnetwork.outside.project
+  project = coalesce(var.project_id, data.google_compute_subnetwork.outside.project)
   region  = data.google_compute_subnetwork.outside.region
   status  = "UP"
 }
 
 locals {
-  zones = coalescelist(try(var.vm_options.zones, []), data.google_compute_zones.zones.names)
+  // For HA launch 3 nodes named with numerical suffixes; non-HA will launch a single node
+  ce_names = try(var.site_options.ha, true) ? formatlist("%s-%02d", var.name, range(0, 3)) : [var.name]
 }
 
-module "regions" {
-  source  = "memes/region-detail/google"
-  version = "1.1.6"
-  regions = [
-    data.google_compute_subnetwork.outside.region,
-  ]
+resource "random_shuffle" "zones" {
+  input = data.google_compute_zones.zones.names
+  keepers = {
+    project_id = var.project_id
+    outside    = var.subnets.outside
+  }
 }
 
-resource "volterra_gcp_vpc_site" "site" {
-  name          = var.name
-  namespace     = "system"
-  description   = coalesce(var.description, "GCP VPC Site")
-  annotations   = var.annotations
-  labels        = var.labels
-  disk_size     = try(var.vm_options.disk_size, 80)
-  gcp_labels    = var.gcp_labels
-  gcp_region    = data.google_compute_subnetwork.outside.region
-  instance_type = try(var.vm_options.instance_type, "e2-standard-8")
-  ssh_key       = trimspace(var.ssh_key)
+resource "volterra_securemesh_site_v2" "site" {
+  name        = var.name
+  namespace   = "system"
+  description = coalesce(var.description, "SMSv2 site for GCP")
+  annotations = var.annotations
+  labels      = var.labels
 
-  coordinates {
-    latitude  = module.regions.results[data.google_compute_subnetwork.outside.region].latitude
-    longitude = module.regions.results[data.google_compute_subnetwork.outside.region].longitude
+  dynamic "admin_user_credentials" {
+    for_each = coalesce(try(trimspace(var.ssh_key), "unspecified"), "unspecified") != "unspecified" ? { creds = { ssh_key = trimspace(var.ssh_key) } } : {}
+    content {
+      # admin_password {
+      # }
+      ssh_key = admin_user_credentials.value.ssh_key
+    }
   }
 
-  cloud_credentials {
-    name      = var.cloud_credential_name
-    namespace = "system"
-  }
-
+  block_all_services = try(length(var.site_options.blocked_services), 0) == 0 ? true : null
   dynamic "blocked_services" {
     for_each = try(length(var.site_options.blocked_services), 0) != 0 ? var.site_options.blocked_services : {}
     content {
@@ -81,8 +78,28 @@ resource "volterra_gcp_vpc_site" "site" {
       }
     }
   }
-  # TODO @memes - should fallback be block_all_services or default_blocked_services?
-  default_blocked_services = try(length(var.site_options.blocked_services), 0) == 0
+
+  disable_ha = length(local.ce_names) == 1 ? true : null
+  enable_ha  = length(local.ce_names) == 1 ? null : true
+
+  dns_ntp_config {
+    custom_dns {
+      dns_servers = [
+        "169.254.169.254",
+      ]
+    }
+    custom_ntp {
+      ntp_servers = [
+        "169.254.169.254",
+      ]
+    }
+  }
+
+  gcp {
+    not_managed {}
+  }
+
+  f5_proxy = true
 
   dynamic "log_receiver" {
     for_each = try(length(var.site_options.log_receiver), 0) != 0 ? { params = var.site_options.log_receiver } : {}
@@ -95,387 +112,267 @@ resource "volterra_gcp_vpc_site" "site" {
   logs_streaming_disabled = try(length(var.site_options.log_receiver), 0) == 0
 
   dynamic "offline_survivability_mode" {
-    for_each = try(var.site_options.offline_survivability_mode, false) ? ["enable"] : []
+    for_each = try(var.site_options.offline_survivability_mode, false) ? { enable = true } : {}
     content {
       enable_offline_survivability_mode = true
     }
   }
 
   dynamic "offline_survivability_mode" {
-    for_each = try(var.site_options.offline_survivability_mode, false) ? [] : ["disable"]
+    for_each = try(var.site_options.offline_survivability_mode, false) ? {} : { disable = true }
     content {
       no_offline_survivability_mode = true
     }
   }
 
-  dynamic "os" {
-    for_each = coalesce(try(var.vm_options.os_version, null), "default") == "default" ? { default_value = true } : {}
-    content {
-      default_os_version = os.value
+  disable           = false
+  no_network_policy = true
+  no_forward_proxy  = true
+  software_settings {
+    sw {
+      default_sw_version = true
+    }
+    os {
+      default_os_version = true
     }
   }
-  dynamic "os" {
-    for_each = coalesce(try(var.vm_options.os_version, null), "default") == "default" ? {} : { version = var.vm_options.os_version }
-    content {
-      operating_system_version = os.value
+  upgrade_settings {
+    kubernetes_upgrade_drain {
+      enable_upgrade_drain {
+        drain_node_timeout               = 300
+        drain_max_unavailable_node_count = 1
+      }
     }
   }
-
-  dynamic "sw" {
-    for_each = coalesce(try(var.vm_options.sw_version, null), "default") == "default" ? { default_value = true } : {}
-    content {
-      default_sw_version = sw.value
-    }
+  performance_enhancement_mode {
+    perf_mode_l7_enhanced = true
   }
-  dynamic "sw" {
-    for_each = coalesce(try(var.vm_options.sw_version, null), "default") == "default" ? {} : { version = var.vm_options.sw_version }
-    content {
-      volterra_software_version = sw.value
-    }
+  tunnel_dead_timeout = 0
+  load_balancing {
+    vip_vrrp_mode = "VIP_VRRP_DISABLE"
   }
-
-  ingress_egress_gw {
-    gcp_certified_hw = "gcp-byol-multi-nic-voltmesh"
-    gcp_zone_names   = local.zones
-    node_number      = 3
-
-    inside_network {
-      existing_network {
-        name = reverse(split("/", data.google_compute_subnetwork.inside.network))[0]
-      }
-    }
-
-    inside_subnet {
-      existing_subnet {
-        subnet_name = reverse(split("/", data.google_compute_subnetwork.inside.self_link))[0]
-      }
-    }
-
-    outside_network {
-      existing_network {
-        name = reverse(split("/", data.google_compute_subnetwork.outside.network))[0]
-      }
-    }
-
-    outside_subnet {
-      existing_subnet {
-        subnet_name = reverse(split("/", data.google_compute_subnetwork.outside.self_link))[0]
-      }
-    }
-
-    # DC cluster group can be established on one of inside or outside network
-    dynamic "dc_cluster_group_inside_vn" {
-      for_each = coalesce(try(var.dc_cluster_group.interface, "unspecified"), "unspecified") == "inside" ? { inside = var.dc_cluster_group } : {}
-      content {
-        name      = dc_cluster_group_inside_vn.value.name
-        namespace = dc_cluster_group_inside_vn.value.namespace
-        tenant    = dc_cluster_group_inside_vn.value.tenant
-      }
-    }
-    dynamic "dc_cluster_group_outside_vn" {
-      for_each = coalesce(try(var.dc_cluster_group.interface, "unspecified"), "unspecified") == "outside" ? { outside = var.dc_cluster_group } : {}
-      content {
-        name      = dc_cluster_group_outside_vn.value.name
-        namespace = dc_cluster_group_outside_vn.value.namespace
-        tenant    = dc_cluster_group_outside_vn.value.tenant
-      }
-    }
-    no_dc_cluster_group = !contains(["inside", "outside"], coalesce(try(var.dc_cluster_group.interface, "unspecified"), "unspecified")) ? true : null
-
-    dynamic "active_forward_proxy_policies" {
-      for_each = try(length(var.forward_proxy_policies), 0) > 0 ? { policies = var.forward_proxy_policies } : {}
-      content {
-        dynamic "forward_proxy_policies" {
-          for_each = active_forward_proxy_policies.value
-          content {
-            name      = forward_proxy_policies.value.name
-            namespace = forward_proxy_policies.value.namespace
-            tenant    = forward_proxy_policies.value.tenant
-          }
-        }
-      }
-    }
-    forward_proxy_allow_all = var.forward_proxy_policies != null && try(length(var.forward_proxy_policies), 0) == 0 ? true : null
-    no_forward_proxy        = var.forward_proxy_policies == null ? true : null
-
-    dynamic "global_network_list" {
-      for_each = var.global_networks != null && (try(var.global_networks.inside, null) != null || try(var.global_networks.outside, null) != null) ? { networks = var.global_networks } : {}
-      content {
-        dynamic "global_network_connections" {
-          for_each = try(global_network_list.value.inside, null) != null ? { inside = global_network_list.value.inside } : {}
-          content {
-            sli_to_global_dr {
-              global_vn {
-                name      = global_network_connections.value.name
-                namespace = global_network_connections.value.namespace
-                tenant    = global_network_connections.value.tenant
-              }
-            }
-          }
-        }
-        dynamic "global_network_connections" {
-          for_each = try(global_network_list.value.outside, null) != null ? { outside = global_network_list.value.outside } : {}
-          content {
-            slo_to_global_dr {
-              global_vn {
-                name      = global_network_connections.value.name
-                namespace = global_network_connections.value.namespace
-                tenant    = global_network_connections.value.tenant
-              }
-            }
-          }
-        }
-
-
-      }
-    }
-    no_global_network = var.global_networks == null || (try(var.global_networks.inside, null) == null && try(var.global_networks.outside, null) == null) ? true : null
-
-    dynamic "inside_static_routes" {
-      for_each = try(var.static_routes.inside, null) != null && (try(length(var.static_routes.inside.simple), 0) > 0 || try(length(var.static_routes.inside.custom), 0) > 0) ? { routes = var.static_routes.inside } : {}
-      content {
-        # GCP VPC site does not support simple static route assignment for internal
-        # dynamic "static_route_list" {
-        #   for_each = try(inside_static_routes.value.simple, null) != null && try(length(inside_static_routes.value.simple), 0) > 0 ? inside_static_routes.value.simple : []
-        #   content {
-        #     simple_static_route = static_route_list.value
-        #   }
-        # }
-
-        dynamic "static_route_list" {
-          for_each = try(inside_static_routes.value.custom, null) != null ? { for i, v in inside_static_routes.value.custom : "${i}" => v } : {}
-          content {
-            custom_static_route {
-              attrs  = static_route_list.value.attrs
-              labels = static_route_list.value.labels
-              nexthop {
-                type = static_route_list.value.type
-                dynamic "interface" {
-                  for_each = static_route_list.value.type == "NEXT_HOP_NETWORK_INTERFACE" && static_route_list.value.interface != null ? { interface = static_route_list.value.interface } : {}
-                  content {
-                    name      = interface.value.name
-                    namespace = interface.value.namespace
-                    tenant    = interface.value.tenant
-                  }
-                }
-                dynamic "nexthop_address" {
-                  for_each = static_route_list.value.type == "NEXT_HOP_USE_CONFIGURED" && static_route_list.value.address != null ? { address = static_route_list.value.address } : {}
-                  content {
-                    dynamic "ipv4" {
-                      for_each = can(cidrnetmask(format("%s/32", nexthop_address.value))) ? { address = nexthop_address.value } : {}
-                      content {
-                        addr = ipv4.value
-                      }
-                    }
-                    dynamic "ipv6" {
-                      for_each = !can(cidrnetmask(format("%s/32", nexthop_address.value))) ? { address = nexthop_address.value } : {}
-                      content {
-                        addr = ipv6.value
-                      }
-                    }
-                  }
-                }
-              }
-              dynamic "subnets" {
-                for_each = try([for subnet in static_route_list.value.subnets : subnet if can(cidrnetmask(subnet))], [])
-                content {
-                  ipv4 {
-                    prefix = cidrhost(subnets.value, 0)
-                    plen   = split("/", subnets.value)[1]
-                  }
-                }
-              }
-              dynamic "subnets" {
-                for_each = try([for subnet in static_route_list.value.subnets : subnet if !can(cidrnetmask(subnet))], [])
-                content {
-                  ipv6 {
-                    prefix = cidrhost(subnets.value, 0)
-                    plen   = split("/", subnets.value)[1]
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    no_inside_static_routes = try(var.static_routes.inside, null) == null || (try(length(var.static_routes.inside.simple), 0) == 0 && try(length(var.static_routes.inside.custom), 0) == 0) ? true : null
-
-
-    # Module consumers can specify one of enhanced firewall, or regular network
-    # policies to add to the site.
-    dynamic "active_enhanced_firewall_policies" {
-      for_each = coalesce(try(var.network_policies.type, "unspecified"), "unspecified") == "enhanced_firewall" && try(length(var.network_policies.refs), 0) > 0 ? { policies = var.network_policies.refs } : {}
-      content {
-        dynamic "enhanced_firewall_policies" {
-          for_each = active_enhanced_firewall_policies.value
-          content {
-            name      = enhanced_firewall_policies.value.name
-            namespace = enhanced_firewall_policies.value.namespace
-            tenant    = enhanced_firewall_policies.value.tenant
-          }
-        }
-      }
-    }
-    dynamic "active_network_policies" {
-      for_each = coalesce(try(var.network_policies.type, "unspecified"), "unspecified") == "network" && try(length(var.network_policies.refs), 0) > 0 ? { policies = var.network_policies.refs } : {}
-      content {
-        dynamic "network_policies" {
-          for_each = active_network_policies.value
-          content {
-            name      = network_policies.value.name
-            namespace = network_policies.value.namespace
-            tenant    = network_policies.value.tenant
-          }
-        }
-      }
-    }
-    no_network_policy = try(length(var.network_policies.refs), 0) == 0 ? true : null
-
-    dynamic "outside_static_routes" {
-      for_each = try(var.static_routes.outside, null) != null && (try(length(var.static_routes.outside.simple), 0) > 0 || try(length(var.static_routes.outside.custom), 0) > 0) ? { routes = var.static_routes.outside } : {}
-      content {
-        dynamic "static_route_list" {
-          for_each = try(outside_static_routes.value.simple, null) != null && try(length(outside_static_routes.value.simple), 0) > 0 ? outside_static_routes.value.simple : []
-          content {
-            simple_static_route = static_route_list.value
-          }
-        }
-
-        dynamic "static_route_list" {
-          for_each = try(outside_static_routes.value.custom, null) != null ? { for i, v in outside_static_routes.value.custom : "${i}" => v } : {}
-          content {
-            custom_static_route {
-              attrs  = static_route_list.value.attrs
-              labels = static_route_list.value.labels
-              nexthop {
-                type = static_route_list.value.type
-                dynamic "interface" {
-                  for_each = static_route_list.value.type == "NEXT_HOP_NETWORK_INTERFACE" && static_route_list.value.interface != null ? { interface = static_route_list.value.interface } : {}
-                  content {
-                    name      = interface.value.name
-                    namespace = interface.value.namespace
-                    tenant    = interface.value.tenant
-                  }
-                }
-                dynamic "nexthop_address" {
-                  for_each = static_route_list.value.type == "NEXT_HOP_USE_CONFIGURED" && static_route_list.value.address != null ? { address = static_route_list.value.address } : {}
-                  content {
-                    dynamic "ipv4" {
-                      for_each = can(cidrnetmask(format("%s/32", nexthop_address.value))) ? { address = nexthop_address.value } : {}
-                      content {
-                        addr = ipv4.value
-                      }
-                    }
-                    dynamic "ipv6" {
-                      for_each = !can(cidrnetmask(format("%s/32", nexthop_address.value))) ? { address = nexthop_address.value } : {}
-                      content {
-                        addr = ipv6.value
-                      }
-                    }
-                  }
-                }
-              }
-              dynamic "subnets" {
-                for_each = try([for subnet in static_route_list.value.subnets : subnet if can(cidrnetmask(subnet))], [])
-                content {
-                  ipv4 {
-                    prefix = cidrhost(subnets.value, 0)
-                    plen   = split("/", subnets.value)[1]
-                  }
-                }
-              }
-              dynamic "subnets" {
-                for_each = try([for subnet in static_route_list.value.subnets : subnet if !can(cidrnetmask(subnet))], [])
-                content {
-                  ipv6 {
-                    prefix = cidrhost(subnets.value, 0)
-                    plen   = split("/", subnets.value)[1]
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    no_outside_static_routes = try(var.static_routes.outside, null) == null || (try(length(var.static_routes.outside.simple), 0) == 0 && try(length(var.static_routes.outside.custom), 0) == 0) ? true : null
-
-    # Performance enhancement mode is optional, but if specified it must indicate
-    # one of L3 or L7 enhanced performance modes.
-    dynamic "performance_enhancement_mode" {
-      for_each = contains(["l3_enhanced", "l7_enhanced"], coalesce(try(var.site_options.perf_mode, "unspecified"), "unspecified")) ? { perf_mode = var.site_options.perf_mode } : {}
-      content {
-        dynamic "perf_mode_l3_enhanced" {
-          for_each = performance_enhancement_mode.value == "l3_enhanced" ? { jumbo = false } : {}
-          content {
-            # TODO @memes - revist
-            # For now don't allow jumbo frames as most GCP VPCs are still running
-            # at default mtu of 1460, but be ready to enable it.
-            jumbo    = perf_mode_l3_enhanced.value ? true : null
-            no_jumbo = !perf_mode_l3_enhanced.value ? true : null
-          }
-        }
-        perf_mode_l7_enhanced = performance_enhancement_mode.value == "l7_enhanced" ? true : null
-      }
-    }
-
-    # Site mesh connection is optional, but if specified it must indicate one of
-    # public or private IP options.
-    sm_connection_public_ip = coalesce(try(var.site_options.sm_connection, "unspecified"), "unspecified") == "public_ip" ? true : null
-    sm_connection_pvt_ip    = coalesce(try(var.site_options.sm_connection, "unspecified"), "unspecified") == "pvt_ip" ? true : null
+  no_s2s_connectivity_slo = true
+  no_s2s_connectivity_sli = true
+  local_vrf {
+    default_config     = true
+    default_sli_config = true
   }
-
-  # Custom DNS
-
-  # Private connectivity
-
-  # Voltstack
+  tunnel_type = "SITE_TO_SITE_TUNNEL_IPSEC_OR_SSL"
+  re_select {
+    geo_proximity = true
+  }
+  proactive_monitoring {
+    proactive_monitoring_enable = true
+  }
 
   lifecycle {
-    # Annotations and labels are often changed outside of provisioning, so ignore
-    # any changes to those fields.
+    # Annotations and labels are often changed outside of provisioning, and the gcp field will be updated as the nodes
+    # join.
     ignore_changes = [
       annotations,
       labels,
+      gcp[0].not_managed,
     ]
   }
 }
 
-# With provider v0.11.31 there is an RPC error raised if post-site creation validation has not completed before starting
-# an 'apply'. This adds a delay between site creation/update and plan/apply, avoiding the RPC error.
-# TODO @memes - these values are abitrary
-resource "time_sleep" "pause_before_action" {
-  create_duration  = "15s"
-  destroy_duration = "60s"
-
-  depends_on = [
-    volterra_gcp_vpc_site.site,
-  ]
+resource "volterra_token" "reg" {
+  for_each    = { for name in local.ce_names : name => {} }
+  name        = each.key
+  namespace   = "system"
+  description = coalesce(var.description, "Registration token for GCP site")
+  type        = 1
+  site_name   = volterra_securemesh_site_v2.site.name
+  annotations = var.annotations
+  labels      = var.labels
 }
 
-# Make sure a TF plan for the GCP VPC resources is successful before applying.
-# TODO @memes - track upstream and maybe revert to one-step apply
-resource "volterra_tf_params_action" "plan" {
-  site_name        = volterra_gcp_vpc_site.site.name
-  site_kind        = "gcp_vpc_site"
-  action           = "plan"
-  wait_for_action  = true
-  ignore_on_update = false
-
-  depends_on = [
-    time_sleep.pause_before_action,
-  ]
+resource "google_compute_address" "slo" {
+  for_each     = { for name in local.ce_names : name => {} }
+  project      = var.project_id
+  name         = format("%s-slo", each.key)
+  description  = format("Reserved for SLO on %s", each.key)
+  subnetwork   = data.google_compute_subnetwork.outside.self_link
+  region       = data.google_compute_subnetwork.outside.region
+  address_type = "INTERNAL"
+  purpose      = "GCE_ENDPOINT"
+  labels       = var.gcp_labels
 }
 
-resource "volterra_tf_params_action" "apply" {
-  site_name        = volterra_gcp_vpc_site.site.name
-  site_kind        = "gcp_vpc_site"
-  action           = "apply"
-  wait_for_action  = true
-  ignore_on_update = false
+resource "google_compute_address" "sli" {
+  for_each     = length(data.google_compute_subnetwork.inside) == 0 ? {} : { for name in local.ce_names : name => {} }
+  project      = var.project_id
+  name         = format("%s-sli", each.key)
+  description  = format("Reserved for SLI on %s", each.key)
+  subnetwork   = data.google_compute_subnetwork.inside["sli"].self_link
+  region       = data.google_compute_subnetwork.inside["sli"].region
+  address_type = "INTERNAL"
+  purpose      = "GCE_ENDPOINT"
+  labels       = var.gcp_labels
+}
 
-  depends_on = [
-    volterra_tf_params_action.plan,
-  ]
+resource "google_compute_firewall" "outside_ce_ce_ingress" {
+  for_each           = length(google_compute_address.slo) > 1 ? { enable = true } : {}
+  project            = var.project_id
+  name               = format("%s-slo-ce-ce-ingress", var.name)
+  network            = data.google_compute_subnetwork.outside.network
+  description        = "Allow ingress from CE to other CE nodes on SLO"
+  direction          = "INGRESS"
+  priority           = 900
+  destination_ranges = [for slo in google_compute_address.slo : slo.address]
+  source_ranges      = [for slo in google_compute_address.slo : slo.address]
+  allow {
+    protocol = "all"
+  }
+}
+
+resource "google_compute_firewall" "outside_ce_ce_egress" {
+  for_each           = length(google_compute_address.slo) > 1 ? { enable = true } : {}
+  project            = var.project_id
+  name               = format("%s-slo-ce-ce-egress", var.name)
+  network            = data.google_compute_subnetwork.outside.network
+  description        = "Allow egress from CE to other CE nodes on SLO"
+  direction          = "EGRESS"
+  priority           = 900
+  destination_ranges = [for slo in google_compute_address.slo : slo.address]
+  source_ranges      = [for slo in google_compute_address.slo : slo.address]
+  allow {
+    protocol = "all"
+  }
+}
+
+resource "google_compute_firewall" "inside_ce_ce_ingress" {
+  for_each           = length(google_compute_address.sli) > 1 ? { enable = true } : {}
+  project            = var.project_id
+  name               = format("%s-sli-ce-ce-ingress", var.name)
+  network            = data.google_compute_subnetwork.inside["sli"].network
+  description        = "Allow ingress from CE to other CE nodes on SLI"
+  direction          = "INGRESS"
+  priority           = 900
+  destination_ranges = [for k, v in google_compute_address.sli : v.address]
+  source_ranges      = [for k, v in google_compute_address.sli : v.address]
+  allow {
+    protocol = "all"
+  }
+}
+
+resource "google_compute_firewall" "inside_ce_ce_egress" {
+  for_each           = length(google_compute_address.sli) > 1 ? { enable = true } : {}
+  project            = var.project_id
+  name               = format("%s-sli-ce-ce-egress", var.name)
+  network            = data.google_compute_subnetwork.inside["sli"].network
+  description        = "Allow egress from CE to other CE nodes on SLI"
+  direction          = "EGRESS"
+  priority           = 900
+  destination_ranges = [for k, v in google_compute_address.sli : v.address]
+  source_ranges      = [for k, v in google_compute_address.sli : v.address]
+  allow {
+    protocol = "all"
+  }
+}
+
+resource "google_compute_instance" "node" {
+  for_each = { for i, name in local.ce_names : name => {
+    zone   = try(element(var.zones, i), element(random_shuffle.zones.result, i))
+    token  = trimspace(volterra_token.reg[name].id)
+    slo_ip = google_compute_address.slo[name].address
+    sli_ip = try(google_compute_address.sli[name].address, null)
+  } }
+
+  project = coalesce(try(var.vm_options.project_id, ""), data.google_compute_subnetwork.outside.project)
+  name    = each.key
+  zone    = each.value.zone
+  labels  = var.gcp_labels
+  metadata = merge(
+    {
+      VmDnsSetting = "ZonePreferred",
+      user-data    = <<-EOCI
+      #cloud-config
+      ---
+      write_files:
+        - path: /etc/vpm/user_data
+          permissions: '0644'
+          owner: 'root:root'
+          content: |
+            token: ${each.value.token}
+      EOCI
+    },
+    var.metadata
+  )
+
+  # Scheduling options
+  machine_type = coalesce(var.machine_type, "n2-standard-8")
+  service_account {
+    email = var.service_account
+    scopes = [
+      "https://www.googleapis.com/auth/cloud-platform",
+    ]
+  }
+  scheduling {
+    automatic_restart = true
+    preemptible       = false
+  }
+
+  boot_disk {
+    auto_delete = true
+    initialize_params {
+      type  = try(var.vm_options.disk_type, "pd-ssd")
+      size  = try(var.vm_options.disk_size, 80)
+      image = var.image
+    }
+
+  }
+
+  # Networking properties
+  tags           = var.tags
+  can_ip_forward = true
+
+  # SLO is always nic0
+  network_interface {
+    subnetwork = var.subnets.outside
+    network_ip = each.value.slo_ip
+    nic_type   = coalesce(try(var.vm_options.nic_type, "VIRTIO_NET"), "VIRTIO_NET")
+    dynamic "access_config" {
+      for_each = try(var.vm_options.public_slo_ip, false) ? { public = true } : {}
+      content {
+        # TODO @memes - support explicit public ip assignment?
+        nat_ip = null
+      }
+    }
+  }
+
+  # If an explicit SLI is requested it should be nic1
+  dynamic "network_interface" {
+    for_each = each.value.sli_ip == null ? {} : { sli = {} }
+    content {
+      subnetwork = data.google_compute_subnetwork.inside["sli"].self_link
+      network_ip = each.value.sli_ip
+      nic_type   = coalesce(try(var.vm_options.nic_type, "VIRTIO_NET"), "VIRTIO_NET")
+      dynamic "access_config" {
+        for_each = try(var.vm_options.public_sli_ip, false) ? { public = true } : {}
+        content {
+          # TODO @memes - support explicit public ip assignment?
+          nat_ip = null
+        }
+      }
+    }
+  }
+
+  # TODO @memes - support other interfaces in the future?
+  dynamic "network_interface" {
+    for_each = try(var.subnets.other, null) == null ? {} : {}
+    content {
+      subnetwork = network_interface.value
+      # TODO @memes - support explicit private IP assignment?
+      network_ip = null
+      nic_type   = coalesce(try(var.vm_options.nic_type, "VIRTIO_NET"), "VIRTIO_NET")
+      dynamic "access_config" {
+        for_each = false ? { public = true } : {}
+        content {
+          # TODO @memes - support explicit public ip assignment?
+          nat_ip = null
+        }
+      }
+    }
+  }
 }

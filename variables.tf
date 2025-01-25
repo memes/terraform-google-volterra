@@ -9,6 +9,17 @@ variable "name" {
   EOD
 }
 
+# variable "namespace" {
+#   type = string
+#   validation {
+#     condition     = can(regex("^[a-zA-Z0-9]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9]$", var.namespace))
+#     error_message = "Namespace is required and must be valid RFC1035."
+#   }
+#   description = <<-EOD
+#   The F5 Distributed Cloud namespace to use for resources that do not have a fixed namespace requirement.
+#   EOD
+# }
+
 variable "description" {
   type        = string
   default     = null
@@ -24,23 +35,12 @@ variable "subnets" {
     outside = string
   })
   validation {
-    condition     = var.subnets == null ? false : can(regex("^(?:https://www.googleapis.com/compute/v1/)?projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/regions/[a-z]{2,}-[a-z]{2,}[0-9]/subnetworks/[a-z]([a-z0-9-]+[a-z0-9])?$", var.subnets.inside)) && can(regex("^(?:https://www.googleapis.com/compute/v1/)?projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/regions/[a-z]{2,}-[a-z]{2,}[0-9]/subnetworks/[a-z]([a-z0-9-]+[a-z0-9])?$", var.subnets.outside))
+    condition     = var.subnets == null ? false : (var.subnets.inside == null || var.subnets.inside == "" || can(regex("^(?:https://www.googleapis.com/compute/v1/)?projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/regions/[a-z]{2,}-[a-z]{2,}[0-9]/subnetworks/[a-z]([a-z0-9-]+[a-z0-9])?$", var.subnets.inside))) && can(regex("^(?:https://www.googleapis.com/compute/v1/)?projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/regions/[a-z]{2,}-[a-z]{2,}[0-9]/subnetworks/[a-z]([a-z0-9-]+[a-z0-9])?$", var.subnets.outside))
     error_message = "The subnet value must have a valid self_link URI, and non-empty pods and services names, and a valid master CIDR."
   }
   description = <<-EOD
   Provides the Compute Engine subnetworks to use for outside and, optionally,
   inside networking of deployed gateway.
-  EOD
-}
-
-variable "cloud_credential_name" {
-  type = string
-  validation {
-    condition     = can(regex("^[a-zA-Z0-9]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9]$", var.cloud_credential_name))
-    error_message = "The cloud_credential_name variable must be RFC1035 compliant and between 1 and 63 characters in length."
-  }
-  description = <<-EOD
-  The name of an existing Cloud Credential to use when generating this site.
   EOD
 }
 
@@ -94,17 +94,26 @@ variable "gcp_labels" {
 variable "vm_options" {
   type = object({
     disk_size     = number
-    instance_type = string
+    disk_type     = string
     os_version    = string
     sw_version    = string
-    zones         = list(string)
+    public_slo_ip = bool
+    public_sli_ip = bool
+    nic_type      = string
   })
+  nullable = false
+  validation {
+    condition     = var.vm_options.disk_size > 45 && floor(var.vm_options.disk_size) == var.vm_options.disk_size && contains(["hyperdisk-balanced", "pd-balanced", "pd-ssd", "pd-standard"], var.vm_options.disk_type)
+    error_message = "The vm_options must contain a valid integer disk_size >= 45, and disk_type must be one of 'pd-balanced', 'pd-ssd', or 'pd-standard'."
+  }
   default = {
     disk_size     = 80
-    instance_type = "n2-standard-8"
+    disk_type     = "pd-ssd"
     os_version    = null
     sw_version    = null
-    zones         = null
+    public_slo_ip = false
+    public_sli_ip = false
+    nic_type      = null
   }
 }
 
@@ -123,6 +132,7 @@ variable "site_options" {
     offline_survivability_mode = bool
     perf_mode                  = string
     sm_connection              = string
+    ha                         = bool
   })
   default = {
     blocked_services           = null
@@ -130,6 +140,7 @@ variable "site_options" {
     offline_survivability_mode = false
     perf_mode                  = null
     sm_connection              = null
+    ha                         = true
   }
 }
 
@@ -226,11 +237,93 @@ variable "static_routes" {
 
 variable "ssh_key" {
   type        = string
-  nullable    = false
+  nullable    = true
+  default     = null
   description = <<-EOD
   The SSH Public Key that will be installed on CE nodes to allow access.
 
   E.g.
   ssh_key = "ssh-rsa AAAAB3...acw=="
   EOD
+}
+
+variable "project_id" {
+  type = string
+  validation {
+    condition     = var.project_id == null ? true : can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.project_id))
+    error_message = "The project_id variable must must be 6 to 30 lowercase letters, digits, or hyphens; it must start with a letter and cannot end with a hyphen."
+  }
+  description = <<-EOD
+  The GCP project identifier where the CE nodes will be created. If blank/null, the nodes will be created in the same
+  project that contains the outside VPC network.
+  EOD
+}
+
+variable "zones" {
+  type     = list(string)
+  nullable = true
+  validation {
+    condition     = var.zones == null ? true : alltrue([for zone in var.zones : can(regex("^[a-z]{2,20}-[a-z]{4,20}[0-9]-[a-z]$", zone))])
+    error_message = "Zones must be null or each zone must be a valid GCE zone name."
+  }
+  default     = []
+  description = <<-EOD
+The compute zones where where the CE instances will be deployed. If provided, the CE nodes will be constrained to this
+set, if empty the CE nodes will be distributed over all zones available within the outside subnet region.
+
+E.g. to force a single-zone deployment, zones = ["us-west1-a"].
+EOD
+}
+
+variable "machine_type" {
+  type        = string
+  default     = "n2-standard-8"
+  description = <<-EOD
+  The machine type to use for CE nodes; this may be a standard GCE machine type, or a customised VM
+  ('custom-VCPUS-MEM_IN_MB'). Default value is 'n2-standard-8'.
+  EOD
+}
+
+variable "image" {
+  type     = string
+  nullable = false
+  validation {
+    condition     = can(regex("^(?:https://www.googleapis.com/compute/v1/)?projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/global/images/[a-z][a-z0-9-]{0,61}[a-z0-9]", var.image))
+    error_message = "The image variable must be a fully-qualified URI."
+  }
+  default     = "projects/f5-7626-networks-public/global/images/f5xc-ce-9202444-20241230010942"
+  description = <<-EOD
+  The self-link URI for a CE machine image to use as a base for the CE cluster. This can be an official F5 image from
+  GCP Marketplace, or a customised image. Default is the latest F5 published SMSv2 image at time of commit.
+  EOD
+}
+
+variable "service_account" {
+  type     = string
+  nullable = false
+  validation {
+    condition     = can(regex("^(?:[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\\.iam|[0-9]+-compute@developer)\\.gserviceaccount\\.com$", var.service_account))
+    error_message = "The service_account variable must be a valid GCP service account email address."
+  }
+  description = <<-EOD
+The email address of the service account which will be used for CE instances.
+EOD
+}
+
+variable "metadata" {
+  description = "Provide custom metadata values to add to each CE instances."
+  type        = map(string)
+  nullable    = false
+  default     = {}
+}
+
+variable "tags" {
+  type = list(string)
+  validation {
+    # GCP tags must be RFC1035 compliant
+    condition     = var.tags == null ? true : alltrue([for tag in var.tags : can(regex("^[a-z][a-z0-9_-]{0,62}$", tag))])
+    error_message = "Each tag must be RFC1035 compliant expectations."
+  }
+  default     = []
+  description = "Optional network tags which will be added to the CE VMs."
 }
