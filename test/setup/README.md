@@ -27,7 +27,7 @@ gcr_location = "EU"
 ```
 
 <!-- markdownlint-disable no-inline-html no-bare-urls -->
-<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
+<!-- BEGIN_TF_DOCS -->
 ## Requirements
 
 | Name | Version |
@@ -107,5 +107,5 @@ gcr_location = "EU"
 | <a name="output_ssh_pubkey"></a> [ssh\_pubkey](#output\_ssh\_pubkey) | n/a |
 | <a name="output_ssh_pubkey_path"></a> [ssh\_pubkey\_path](#output\_ssh\_pubkey\_path) | n/a |
 | <a name="output_zones"></a> [zones](#output\_zones) | n/a |
-<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
+<!-- END_TF_DOCS -->
 <!-- markdownlint-enable no-inline-html no-bare-urls -->

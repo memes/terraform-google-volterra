@@ -38,7 +38,7 @@ module "volterra_sa" {
 
 <!-- spell-checker:ignore markdownlint bigip -->
 <!-- markdownlint-disable MD033 MD034 -->
-<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
+<!-- BEGIN_TF_DOCS -->
 ## Requirements
 
 | Name | Version |
@@ -67,18 +67,18 @@ module "volterra_sa" {
 |------|-------------|------|---------|:--------:|
 | <a name="input_gcp_project_id"></a> [gcp\_project\_id](#input\_gcp\_project\_id) | Sets the GCP project id for resource creation. | `string` | n/a | yes |
 | <a name="input_annotations"></a> [annotations](#input\_annotations) | An optional list of annotations to apply to generated Volterra cloud credentials. | `map(string)` | `{}` | no |
-| <a name="input_cloud_credential_name"></a> [cloud\_credential\_name](#input\_cloud\_credential\_name) | The name to assign to the Volterra Cloud Credentials that will contain the GCP<br>service account JSON keyfile. See also `volterra_namespace`. | `string` | `""` | no |
-| <a name="input_gcp_role_name"></a> [gcp\_role\_name](#input\_gcp\_role\_name) | The name to assign to the generated custom IAM role; if left blank (default) a<br>semi-random name will be generated. | `string` | `""` | no |
-| <a name="input_gcp_service_account_name"></a> [gcp\_service\_account\_name](#input\_gcp\_service\_account\_name) | The name to assign to the generated service account; if left blank (default) a<br>semi-random name will be generated. | `string` | `""` | no |
+| <a name="input_cloud_credential_name"></a> [cloud\_credential\_name](#input\_cloud\_credential\_name) | The name to assign to the Volterra Cloud Credentials that will contain the GCP<br/>service account JSON keyfile. See also `volterra_namespace`. | `string` | `""` | no |
+| <a name="input_gcp_role_name"></a> [gcp\_role\_name](#input\_gcp\_role\_name) | The name to assign to the generated custom IAM role; if left blank (default) a<br/>semi-random name will be generated. | `string` | `""` | no |
+| <a name="input_gcp_service_account_name"></a> [gcp\_service\_account\_name](#input\_gcp\_service\_account\_name) | The name to assign to the generated service account; if left blank (default) a<br/>semi-random name will be generated. | `string` | `""` | no |
 | <a name="input_labels"></a> [labels](#input\_labels) | An optional list of labels to apply to generated Volterra cloud credentials. | `map(string)` | `{}` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_cloud_credential_name"></a> [cloud\_credential\_name](#output\_cloud\_credential\_name) | The name of the Volterra cloud credential containing the GCP service account<br>credentials file. |
+| <a name="output_cloud_credential_name"></a> [cloud\_credential\_name](#output\_cloud\_credential\_name) | The name of the Volterra cloud credential containing the GCP service account<br/>credentials file. |
 | <a name="output_cloud_credential_namespace"></a> [cloud\_credential\_namespace](#output\_cloud\_credential\_namespace) | The namespace containing the Volterra cloud credential for GCP service account. |
 | <a name="output_gcp_service_account"></a> [gcp\_service\_account](#output\_gcp\_service\_account) | The fully-qualified GCP service account that was created. |
 | <a name="output_role_id"></a> [role\_id](#output\_role\_id) | The qualified role-id for the custom Volterra role. |
-<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
+<!-- END_TF_DOCS -->
 <!-- markdownlint-enable MD033 MD034 -->
