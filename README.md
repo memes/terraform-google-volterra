@@ -81,10 +81,10 @@ No modules.
 
 | Name | Description |
 |------|-------------|
+| <a name="output_id"></a> [id](#output\_id) | The identifier of the F5 Distributed Cloud SMS v2 site. |
 | <a name="output_name"></a> [name](#output\_name) | n/a |
 | <a name="output_namespace"></a> [namespace](#output\_namespace) | n/a |
 | <a name="output_nodes"></a> [nodes](#output\_nodes) | A map of CE node names to values |
-| <a name="output_smsv2_site_id"></a> [smsv2\_site\_id](#output\_smsv2\_site\_id) | The identifier of the F5 Distributed Cloud SMS v2 site. |
 <!-- END_TF_DOCS -->
 <!-- markdownlint-enable MD033 MD034 -->
 

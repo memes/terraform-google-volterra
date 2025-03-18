@@ -1,4 +1,4 @@
-output "smsv2_site_id" {
+output "id" {
   value       = volterra_securemesh_site_v2.site.id
   description = <<-EOD
     The identifier of the F5 Distributed Cloud SMS v2 site.
