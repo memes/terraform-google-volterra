@@ -198,39 +198,40 @@ variable "global_networks" {
   default = null
 }
 
-variable "static_routes" {
+variable "slo_config" {
   type = object({
-    outside = object({
-      simple = list(string)
-      custom = list(object({
-        type   = string
-        attrs  = list(string)
-        labels = map(string)
-        interface = object({
-          name      = string
-          namespace = string
-          tenant    = string
-        })
-        address = string
-        subnets = list(string)
-      }))
-    })
-    inside = object({
-      # GCP VPC site does not support simple static routes on inside
-      # simple = list(string)
-      custom = list(object({
-        type   = string
-        attrs  = list(string)
-        labels = map(string)
-        interface = object({
-          name      = string
-          namespace = string
-          tenant    = string
-        })
-        address = string
-        subnets = list(string)
-      }))
-    })
+    labels     = map(string)
+    nameserver = string
+    static_routes = list(object({
+      ip_address               = string
+      next_hop_default_gateway = bool
+      interface = object({
+        name      = string
+        namespace = string
+        tenant    = string
+      })
+      attrs    = list(string)
+      prefixes = list(string)
+    }))
+  })
+  default = null
+}
+
+variable "sli_config" {
+  type = object({
+    labels     = map(string)
+    nameserver = string
+    static_routes = list(object({
+      ip_address               = string
+      next_hop_default_gateway = bool
+      interface = object({
+        name      = string
+        namespace = string
+        tenant    = string
+      })
+      attrs    = list(string)
+      prefixes = list(string)
+    }))
   })
   default = null
 }
