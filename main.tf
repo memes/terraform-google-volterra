@@ -169,23 +169,23 @@ resource "volterra_securemesh_site_v2" "site" {
   no_s2s_connectivity_slo = true
   no_s2s_connectivity_sli = true
   local_vrf {
-    default_config = try(length(var.slo_config), 0) > 0 ? true : null
+    default_config = try(length(var.slo_config), 0) > 0 ? null : true
     dynamic "slo_config" {
-      for_each = var.slo_config == null ? {} : { config = var.slo_config }
+      for_each = try(length(var.slo_config), 0) > 0 ? { config = var.slo_config } : {}
       content {
         labels           = try(slo_config.value.labels, {})
         nameserver       = can(cidrhost(format("%s/128", slo_config.value.nameserver), 0)) == false && can(cidrhost(format("%s/32", slo_config.value.nameserver), 0)) ? slo_config.value.nameserver : null
         nameserver_v6    = can(cidrhost(format("%s/128", slo_config.value.nameserver), 0)) ? slo_config.value.nameserver : null
-        no_static_routes = try(length(slo_config.value.static_routes), 0) > 0 ? true : null
+        no_static_routes = try(length(slo_config.value.static_routes), 0) > 0 ? null : true
         dynamic "static_routes" {
-          for_each = try(slo_config.value.static_routes, [])
+          for_each = try(length(slo_config.value.static_routes), 0) > 0 ? [1] : []
           content {
             dynamic "static_routes" {
-              for_each = static_routes.value
+              for_each = slo_config.value.static_routes
               iterator = route
               content {
-                attrs       = try(route.value.attrs, null)
-                ip_prefixes = try(route.value.prefixes)
+                attrs       = try(route.value.attrs, [])
+                ip_prefixes = try(route.value.prefixes, [])
                 # Only one of default_gateway/ipaddress/interface should be present, preferred in that order.
                 default_gateway = try(route.value.next_hop_default_gateway, false) ? true : null
                 ip_address      = try(route.value.next_hop_default_gateway, false) == false && coalesce(try(route.value.address, "unspecified"), "unspecified") != "unspecified" ? route.value.address : null
@@ -204,23 +204,23 @@ resource "volterra_securemesh_site_v2" "site" {
       }
     }
 
-    default_sli_config = var.sli_config == null ? true : null
+    default_sli_config = try(length(var.sli_config), 0) > 0 ? null : true
     dynamic "sli_config" {
-      for_each = try(length(var.sli_config), 0) > 0 ? {} : { config = var.sli_config }
+      for_each = try(length(var.sli_config), 0) > 0 ? { config = var.sli_config } : {}
       content {
         labels           = try(sli_config.value.labels, {})
         nameserver       = can(cidrhost(format("%s/128", sli_config.value.nameserver), 0)) == false && can(cidrhost(format("%s/32", sli_config.value.nameserver), 0)) ? sli_config.value.nameserver : null
         nameserver_v6    = can(cidrhost(format("%s/128", sli_config.value.nameserver), 0)) ? sli_config.value.nameserver : null
-        no_static_routes = try(length(sli_config.value.static_routes), 0) > 0 ? true : null
+        no_static_routes = try(length(sli_config.value.static_routes), 0) > 0 ? null : true
         dynamic "static_routes" {
-          for_each = try(sli_config.value.static_routes, [])
+          for_each = try(length(sli_config.value.static_routes), 0) > 0 ? [1] : []
           content {
             dynamic "static_routes" {
-              for_each = static_routes.value
+              for_each = sli_config.value.static_routes
               iterator = route
               content {
-                attrs       = try(route.value.attrs, null)
-                ip_prefixes = try(route.value.prefixes)
+                attrs       = try(route.value.attrs, [])
+                ip_prefixes = try(route.value.prefixes, [])
                 # Only one of default_gateway/ipaddress/interface should be present, preferred in that order.
                 default_gateway = try(route.value.next_hop_default_gateway, false) ? true : null
                 ip_address      = try(route.value.next_hop_default_gateway, false) == false && coalesce(try(route.value.address, "unspecified"), "unspecified") != "unspecified" ? route.value.address : null
@@ -239,6 +239,7 @@ resource "volterra_securemesh_site_v2" "site" {
       }
     }
   }
+
   tunnel_type = "SITE_TO_SITE_TUNNEL_IPSEC_OR_SSL"
   re_select {
     geo_proximity = true

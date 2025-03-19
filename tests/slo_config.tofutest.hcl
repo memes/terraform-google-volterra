@@ -15,13 +15,13 @@ run "null" {
   command = plan
 
   variables {
-    name            = "${run.setup.prefix}-sli"
+    name            = "${run.setup.prefix}-slo"
     subnets         = run.setup.subnet_self_links
     namespace       = run.setup.namespace
     ssh_key         = run.setup.ssh_pubkey
     service_account = run.setup.sa
     tags            = run.setup.outside_nat_tags
-    sli_config = null
+    slo_config = null
   }
 }
 
@@ -29,15 +29,15 @@ run "labels" {
   command = plan
 
   variables {
-    name            = "${run.setup.prefix}-sli"
+    name            = "${run.setup.prefix}-slo"
     subnets         = run.setup.subnet_self_links
     namespace       = run.setup.namespace
     ssh_key         = run.setup.ssh_pubkey
     service_account = run.setup.sa
     tags            = run.setup.outside_nat_tags
-    sli_config = {
+    slo_config = {
       labels = {
-        sli_label = "labels"
+        slo_label = "labels"
       }
       nameserver = null
       static_routes = null
@@ -49,13 +49,13 @@ run "ipv4_ns" {
   command = plan
 
   variables {
-    name            = "${run.setup.prefix}-sli"
+    name            = "${run.setup.prefix}-slo"
     subnets         = run.setup.subnet_self_links
     namespace       = run.setup.namespace
     ssh_key         = run.setup.ssh_pubkey
     service_account = run.setup.sa
     tags            = run.setup.outside_nat_tags
-    sli_config = {
+    slo_config = {
       labels = null
       nameserver = "1.2.3.4"
       static_routes = null
@@ -67,13 +67,13 @@ run "ipv6_ns" {
   command = plan
 
   variables {
-    name            = "${run.setup.prefix}-sli"
+    name            = "${run.setup.prefix}-slo"
     subnets         = run.setup.subnet_self_links
     namespace       = run.setup.namespace
     ssh_key         = run.setup.ssh_pubkey
     service_account = run.setup.sa
     tags            = run.setup.outside_nat_tags
-    sli_config = {
+    slo_config = {
       labels = null
       nameserver = "fd00::"
       static_routes = null
@@ -85,15 +85,15 @@ run "provision" {
   command = apply
 
   variables {
-    name            = "${run.setup.prefix}-sli"
+    name            = "${run.setup.prefix}-slo"
     subnets         = run.setup.subnet_self_links
     namespace       = run.setup.namespace
     ssh_key         = run.setup.ssh_pubkey
     service_account = run.setup.sa
     tags            = run.setup.outside_nat_tags
-    sli_config = {
+    slo_config = {
       labels = {
-        sli_label = "test"
+        slo_label = "test"
       }
       nameserver = null
       static_routes = [
@@ -125,13 +125,13 @@ run "provision" {
   }
 
   assert {
-    condition = try(length(volterra_securemesh_site_v2.site.local_vrf[0].sli_config), 0) > 0
-    error_message = "Expected site to have custom sli_config"
+    condition = try(length(volterra_securemesh_site_v2.site.local_vrf[0].slo_config), 0) > 0
+    error_message = "Expected site to have custom slo_config"
   }
 
   assert {
-    condition = try(length(volterra_securemesh_site_v2.site.local_vrf[0].sli_config[0].static_routes), 0) > 0
-    error_message = "Expected site to have custom sli_config static routes"
+    condition = try(length(volterra_securemesh_site_v2.site.local_vrf[0].slo_config[0].static_routes), 0) > 0
+    error_message = "Expected site to have custom slo_config static routes"
   }
 
   assert {
@@ -145,7 +145,7 @@ run "provision" {
   }
 
   assert {
-    condition = alltrue([for k,v in try(google_compute_instance.node, {}): can(regex("-sli-0[012]$", v.name))])
+    condition = alltrue([for k,v in try(google_compute_instance.node, {}): can(regex("-slo-0[012]$", v.name))])
     error_message = "Generated VM names do not match expectations, got '${join(",", [for k,v in try(google_compute_instance.node, {}):  v.name])}'"
   }
 }

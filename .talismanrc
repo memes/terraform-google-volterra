@@ -34,3 +34,5 @@ fileignoreconfig:
   checksum: 5d7c6da50301fa282cbef09a158196552716f403553af378bc80ea1536837f11
 - filename: tests/sli_config.tofutest.hcl
   checksum: c0b039bbe565a5a5cd6453fae0a38f245307c25a1f0924cb096412ca8f2928d1
+- filename: tests/slo_config.tofutest.hcl
+  checksum: f2c68f645ab2d6185d016985ba3142a2d8b5ee624f94a30609043751cddf5fed
