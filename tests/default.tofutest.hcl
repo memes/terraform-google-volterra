@@ -42,7 +42,7 @@ run "provision" {
   }
 
   assert {
-    condition = volterra_securemesh_site_v2.site.description == "SMSv2 site for GCP"
+    condition     = volterra_securemesh_site_v2.site.description == "SMSv2 site for GCP"
     error_message = "Expected description to be 'SMSv2 site for GCP', got '${coalesce(volterra_securemesh_site_v2.site.description, "null")}'"
   }
 
@@ -57,8 +57,8 @@ run "provision" {
   }
 
   assert {
-    condition = alltrue([for k,v in try(google_compute_instance.node, {}): can(regex("-def-0[012]$", v.name))])
-    error_message = "Generated VM names do not match expectations, got '${join(",", [for k,v in try(google_compute_instance.node, {}):  v.name])}'"
+    condition     = alltrue([for k, v in try(google_compute_instance.node, {}) : can(regex("-def-0[012]$", v.name))])
+    error_message = "Generated VM names do not match expectations, got '${join(",", [for k, v in try(google_compute_instance.node, {}) : v.name])}'"
   }
 }
 

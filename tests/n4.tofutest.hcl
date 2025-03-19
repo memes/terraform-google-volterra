@@ -23,16 +23,16 @@ run "validate" {
     ssh_key         = run.setup.ssh_pubkey
     service_account = run.setup.sa
     tags            = run.setup.outside_nat_tags
-    machine_type = "n4-standard-8"
-    image = run.setup.custom_ce_image
+    machine_type    = "n4-standard-8"
+    image           = run.setup.custom_ce_image
     vm_options = {
-      disk_size = 80
-      disk_type = "hyperdisk-balanced"
-      os_version = null
-      sw_version = null
+      disk_size     = 80
+      disk_type     = "hyperdisk-balanced"
+      os_version    = null
+      sw_version    = null
       public_slo_ip = false
       public_sli_ip = false
-      nic_type = "GVNIC"
+      nic_type      = "GVNIC"
     }
   }
 }
@@ -47,16 +47,16 @@ run "provision" {
     ssh_key         = run.setup.ssh_pubkey
     service_account = run.setup.sa
     tags            = run.setup.outside_nat_tags
-    machine_type = "n4-standard-8"
-    image = run.setup.custom_ce_image
+    machine_type    = "n4-standard-8"
+    image           = run.setup.custom_ce_image
     vm_options = {
-      disk_size = 80
-      disk_type = "hyperdisk-balanced"
-      os_version = null
-      sw_version = null
+      disk_size     = 80
+      disk_type     = "hyperdisk-balanced"
+      os_version    = null
+      sw_version    = null
       public_slo_ip = false
       public_sli_ip = false
-      nic_type = "GVNIC"
+      nic_type      = "GVNIC"
     }
   }
 
@@ -66,7 +66,7 @@ run "provision" {
   }
 
   assert {
-    condition = volterra_securemesh_site_v2.site.description == "SMSv2 site for GCP"
+    condition     = volterra_securemesh_site_v2.site.description == "SMSv2 site for GCP"
     error_message = "Expected description to be 'SMSv2 site for GCP', got '${coalesce(volterra_securemesh_site_v2.site.description, "null")}'"
   }
 
@@ -81,8 +81,8 @@ run "provision" {
   }
 
   assert {
-    condition = alltrue([for k,v in try(google_compute_instance.node, {}): can(regex("-n4-0[012]$", v.name))])
-    error_message = "Generated VM names do not match expectations, got '${join(",", [for k,v in try(google_compute_instance.node, {}):  v.name])}'"
+    condition     = alltrue([for k, v in try(google_compute_instance.node, {}) : can(regex("-n4-0[012]$", v.name))])
+    error_message = "Generated VM names do not match expectations, got '${join(",", [for k, v in try(google_compute_instance.node, {}) : v.name])}'"
   }
 }
 
