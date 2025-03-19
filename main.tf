@@ -187,10 +187,10 @@ resource "volterra_securemesh_site_v2" "site" {
                 attrs       = try(route.value.attrs, [])
                 ip_prefixes = try(route.value.prefixes, [])
                 # Only one of default_gateway/ipaddress/interface should be present, preferred in that order.
-                default_gateway = try(route.value.next_hop_default_gateway, false) ? true : null
-                ip_address      = try(route.value.next_hop_default_gateway, false) == false && coalesce(try(route.value.address, "unspecified"), "unspecified") != "unspecified" ? route.value.address : null
+                default_gateway = try(route.value.default_gateway, false)
+                ip_address      = try(route.value.default_gateway, false) == false && coalesce(try(route.value.ip_address, "unspecified"), "unspecified") != "unspecified" ? route.value.ip_address : null
                 dynamic "interface" {
-                  for_each = try(route.value.next_hop_default_gateway, false) == false && coalesce(try(route.value.address, "unspecified"), "unspecified") == "unspecified" && try(route.value.interface, null) != null ? { i = route.value.interface } : {}
+                  for_each = try(route.value.default_gateway, false) == false && coalesce(try(route.value.ip_address, "unspecified"), "unspecified") == "unspecified" && try(route.value.interface, null) != null ? { i = route.value.interface } : {}
                   content {
                     name      = interface.value.name
                     namespace = interface.value.namespace
@@ -222,10 +222,10 @@ resource "volterra_securemesh_site_v2" "site" {
                 attrs       = try(route.value.attrs, [])
                 ip_prefixes = try(route.value.prefixes, [])
                 # Only one of default_gateway/ipaddress/interface should be present, preferred in that order.
-                default_gateway = try(route.value.next_hop_default_gateway, false) ? true : null
-                ip_address      = try(route.value.next_hop_default_gateway, false) == false && coalesce(try(route.value.address, "unspecified"), "unspecified") != "unspecified" ? route.value.address : null
+                default_gateway = try(route.default_gateway, false)
+                ip_address      = try(route.default_gateway, false) == false && coalesce(try(route.value.ip_address, "unspecified"), "unspecified") != "unspecified" ? route.value.ip_address : null
                 dynamic "interface" {
-                  for_each = try(route.value.next_hop_default_gateway, false) == false && coalesce(try(route.value.address, "unspecified"), "unspecified") == "unspecified" && try(route.value.interface, null) != null ? { i = route.value.interface } : {}
+                  for_each = try(route.value.gateway, false) == false && coalesce(try(route.value.ip_address, "unspecified"), "unspecified") == "unspecified" && try(route.value.interface, null) != null ? { i = route.value.interface } : {}
                   content {
                     name      = interface.value.name
                     namespace = interface.value.namespace

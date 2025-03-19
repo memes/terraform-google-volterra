@@ -21,7 +21,7 @@ run "null" {
     ssh_key         = run.setup.ssh_pubkey
     service_account = run.setup.sa
     tags            = run.setup.outside_nat_tags
-    slo_config = null
+    slo_config      = null
   }
 }
 
@@ -39,7 +39,7 @@ run "labels" {
       labels = {
         slo_label = "labels"
       }
-      nameserver = null
+      nameserver    = null
       static_routes = null
     }
   }
@@ -56,8 +56,8 @@ run "ipv4_ns" {
     service_account = run.setup.sa
     tags            = run.setup.outside_nat_tags
     slo_config = {
-      labels = null
-      nameserver = "1.2.3.4"
+      labels        = null
+      nameserver    = "1.2.3.4"
       static_routes = null
     }
   }
@@ -74,8 +74,8 @@ run "ipv6_ns" {
     service_account = run.setup.sa
     tags            = run.setup.outside_nat_tags
     slo_config = {
-      labels = null
-      nameserver = "fd00::"
+      labels        = null
+      nameserver    = "fd00::"
       static_routes = null
     }
   }
@@ -98,9 +98,9 @@ run "provision" {
       nameserver = null
       static_routes = [
         {
-          ip_address = null
-          next_hop_default_gateway = true
-          interface = null
+          ip_address      = null
+          default_gateway = true
+          interface       = null
           attrs = [
             "ROUTE_ATTR_ADVERTISE",
             "ROUTE_ATTR_INSTALL_HOST",
@@ -120,17 +120,17 @@ run "provision" {
   }
 
   assert {
-    condition = volterra_securemesh_site_v2.site.description == "SMSv2 site for GCP"
+    condition     = volterra_securemesh_site_v2.site.description == "SMSv2 site for GCP"
     error_message = "Expected description to be 'SMSv2 site for GCP', got '${coalesce(volterra_securemesh_site_v2.site.description, "null")}'"
   }
 
   assert {
-    condition = try(length(volterra_securemesh_site_v2.site.local_vrf[0].slo_config), 0) > 0
+    condition     = try(length(volterra_securemesh_site_v2.site.local_vrf[0].slo_config), 0) > 0
     error_message = "Expected site to have custom slo_config"
   }
 
   assert {
-    condition = try(length(volterra_securemesh_site_v2.site.local_vrf[0].slo_config[0].static_routes), 0) > 0
+    condition     = try(length(volterra_securemesh_site_v2.site.local_vrf[0].slo_config[0].static_routes), 0) > 0
     error_message = "Expected site to have custom slo_config static routes"
   }
 
@@ -145,8 +145,8 @@ run "provision" {
   }
 
   assert {
-    condition = alltrue([for k,v in try(google_compute_instance.node, {}): can(regex("-slo-0[012]$", v.name))])
-    error_message = "Generated VM names do not match expectations, got '${join(",", [for k,v in try(google_compute_instance.node, {}):  v.name])}'"
+    condition     = alltrue([for k, v in try(google_compute_instance.node, {}) : can(regex("-slo-0[012]$", v.name))])
+    error_message = "Generated VM names do not match expectations, got '${join(",", [for k, v in try(google_compute_instance.node, {}) : v.name])}'"
   }
 }
 

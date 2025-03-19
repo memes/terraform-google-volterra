@@ -203,8 +203,8 @@ variable "slo_config" {
     labels     = map(string)
     nameserver = string
     static_routes = list(object({
-      ip_address               = string
-      next_hop_default_gateway = bool
+      ip_address      = string
+      default_gateway = bool
       interface = object({
         name      = string
         namespace = string
@@ -222,8 +222,8 @@ variable "sli_config" {
     labels     = map(string)
     nameserver = string
     static_routes = list(object({
-      ip_address               = string
-      next_hop_default_gateway = bool
+      ip_address      = string
+      default_gateway = bool
       interface = object({
         name      = string
         namespace = string
