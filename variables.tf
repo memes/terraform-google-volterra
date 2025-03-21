@@ -294,7 +294,7 @@ variable "image" {
     condition     = can(regex("^(?:https://www.googleapis.com/compute/v1/)?projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/global/images/[a-z][a-z0-9-]{0,61}[a-z0-9]", var.image))
     error_message = "The image variable must be a fully-qualified URI."
   }
-  default     = "projects/f5-7626-networks-public/global/images/f5xc-ce-9202444-20241230010942"
+  default     = "projects/f5-7626-networks-public/global/images/f5xc-ce-9202444-20250102052432"
   description = <<-EOD
   The self-link URI for a CE machine image to use as a base for the CE cluster. This can be an official F5 image from
   GCP Marketplace, or a customised image. Default is the latest F5 published SMSv2 image at time of commit.
