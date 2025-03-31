@@ -131,10 +131,13 @@ resource "volterra_securemesh_site_v2" "site" {
   no_forward_proxy  = true
   software_settings {
     sw {
-      default_sw_version = true
+      default_sw_version        = coalesce(try(var.vm_options.sw_version, null), "unspecified") == "unspecified" ? true : null
+      volterra_software_version = coalesce(try(var.vm_options.sw_version, null), "unspecified") == "unspecified" ? null : var.vm_options.sw_version
     }
     os {
-      default_os_version = true
+
+      default_os_version       = coalesce(try(var.vm_options.os_version, null), "unspecified") == "unspecified" ? true : null
+      operating_system_version = coalesce(try(var.vm_options.os_version, null), "unspecified") == "unspecified" ? null : var.vm_options.os_version
     }
   }
   upgrade_settings {
@@ -176,6 +179,8 @@ resource "volterra_securemesh_site_v2" "site" {
         labels           = try(slo_config.value.labels, {})
         nameserver       = can(cidrhost(format("%s/128", slo_config.value.nameserver), 0)) == false && can(cidrhost(format("%s/32", slo_config.value.nameserver), 0)) ? slo_config.value.nameserver : null
         nameserver_v6    = can(cidrhost(format("%s/128", slo_config.value.nameserver), 0)) ? slo_config.value.nameserver : null
+        vip              = can(cidrhost(format("%s/128", slo_config.value.vip), 0)) == false && can(cidrhost(format("%s/32", slo_config.value.vip), 0)) ? slo_config.value.vip : null
+        vip_v6           = can(cidrhost(format("%s/128", slo_config.value.vip), 0)) ? slo_config.value.vip : null
         no_static_routes = try(length(slo_config.value.static_routes), 0) > 0 ? null : true
         dynamic "static_routes" {
           for_each = try(length(slo_config.value.static_routes), 0) > 0 ? [1] : []
@@ -211,6 +216,8 @@ resource "volterra_securemesh_site_v2" "site" {
         labels           = try(sli_config.value.labels, {})
         nameserver       = can(cidrhost(format("%s/128", sli_config.value.nameserver), 0)) == false && can(cidrhost(format("%s/32", sli_config.value.nameserver), 0)) ? sli_config.value.nameserver : null
         nameserver_v6    = can(cidrhost(format("%s/128", sli_config.value.nameserver), 0)) ? sli_config.value.nameserver : null
+        vip              = can(cidrhost(format("%s/128", sli_config.value.vip), 0)) == false && can(cidrhost(format("%s/32", sli_config.value.vip), 0)) ? sli_config.value.vip : null
+        vip_v6           = can(cidrhost(format("%s/128", sli_config.value.vip), 0)) ? sli_config.value.vip : null
         no_static_routes = try(length(sli_config.value.static_routes), 0) > 0 ? null : true
         dynamic "static_routes" {
           for_each = try(length(sli_config.value.static_routes), 0) > 0 ? [1] : []

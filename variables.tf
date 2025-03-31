@@ -202,6 +202,7 @@ variable "slo_config" {
   type = object({
     labels     = map(string)
     nameserver = string
+    vip        = string
     static_routes = list(object({
       ip_address      = string
       default_gateway = bool
@@ -221,6 +222,7 @@ variable "sli_config" {
   type = object({
     labels     = map(string)
     nameserver = string
+    vip        = string
     static_routes = list(object({
       ip_address      = string
       default_gateway = bool
